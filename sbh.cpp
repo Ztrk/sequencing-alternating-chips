@@ -10,14 +10,14 @@ using namespace std;
 
 class Individual {
 public:
-    vector<string> permutation;
+    vector<int> permutation;
     int fitness;
 
-    void evaluate(const string &start, int expected_length) {
-        fitness = to_sequence(start, expected_length).second;
+    void evaluate(const vector<string> &spectrum, const string &start, int expected_length) {
+        fitness = to_sequence(spectrum, start, expected_length).second;
     }
 
-    pair<string, int> to_sequence(const string &start, int expected_length) {
+    pair<string, int> to_sequence(const vector<string> &spectrum, const string &start, int expected_length) {
         string result = start;
         int probe_length = start.size();
         size_t i;
@@ -25,13 +25,13 @@ public:
             int result_length = result.size();
             int overlap;
             for (overlap = probe_length - 1; overlap >= 0; --overlap) {
-                if (result.substr(result_length - overlap) == permutation[i].substr(0, overlap)) {
+                if (result.substr(result_length - overlap) == spectrum[permutation[i]].substr(0, overlap)) {
                     break;
                 }
             }
 
             if (result_length + probe_length - overlap <= expected_length) {
-                result += permutation[i].substr(overlap);
+                result += spectrum[permutation[i]].substr(overlap);
             }
             else {
                 break;
@@ -56,7 +56,7 @@ Individual crossover(const Individual &parent1, const Individual &parent2, mt199
 
     Individual individual;
     individual.permutation = parent1.permutation;
-    unordered_set<string> used;
+    unordered_set<int> used;
 
     for (size_t i = index1; i <= index2; ++i) {
         used.insert(individual.permutation[i]);
@@ -76,7 +76,11 @@ Individual crossover(const Individual &parent1, const Individual &parent2, mt199
 
 Individual generate(const vector<string> &spectrum, mt19937 &generator) {
     Individual individual;
-    individual.permutation = spectrum;
+    individual.permutation = vector<int> (spectrum.size());
+    for (size_t i = 0; i < individual.permutation.size(); ++i) {
+        individual.permutation[i] = i;
+    }
+
     shuffle(individual.permutation.begin(), individual.permutation.end(), generator);
     return individual;
 }
@@ -90,7 +94,7 @@ public:
     void initialize_population(const vector<string> &spectrum, int population_size, string &start, int length) {
         for (int i = 0; i < population_size; ++i) {
             Individual new_individual = generate(spectrum, generator);
-            new_individual.evaluate(start, length);
+            new_individual.evaluate(spectrum, start, length);
             population.push_back(new_individual);
         }
     }
@@ -121,7 +125,7 @@ public:
                 individual.mutate(generator);
             }
 
-            individual.evaluate(start, length);
+            individual.evaluate(spectrum, start, length);
 
             int worse_parent = population[parent1].fitness > population[parent2].fitness ? parent2 : parent1;
             if (individual.fitness > population[worse_parent].fitness) {
@@ -138,7 +142,7 @@ public:
         }
         cout << iterations << '\n';
         cout << population[best].fitness << '\n';
-        return population[best].to_sequence(start, length).first;
+        return population[best].to_sequence(spectrum, start, length).first;
     }
 };
 
