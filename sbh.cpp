@@ -77,21 +77,31 @@ Individual crossover(const Individual &parent1, const Individual &parent2,
 
     Individual individual;
     individual.permutation = vector<int>(parent1.permutation.size());
-    unordered_set<int> remaining(parent1.permutation.begin(), parent1.permutation.end());
-    remaining.erase(0);
+
+    vector<bool> remaining(spectrum.size(), true);
+    int remaining_cnt = spectrum.size() - 1;
+    remaining[0] = false;
 
     size_t i = 0;
-    while (!remaining.empty()) {
-        if (remaining.find(parent1.permutation[i]) == remaining.end()
-                || remaining.find(parent2.permutation[i]) == remaining.end()
+    while (remaining_cnt != 0) {
+        if (!remaining[parent1.permutation[i]]
+                || !remaining[parent2.permutation[i]]
                 || take_random_distribution(generator)) {
-            uniform_int_distribution<> random_index_distribution(0, remaining.size() - 1);
+
+            uniform_int_distribution<> random_index_distribution(0, remaining_cnt - 1);
             int index = random_index_distribution(generator);
-            auto it = remaining.begin();
-            for (int i = 0; i < index; ++i) {
-                ++it;
+
+            int count = -1;
+            size_t j = 0;
+            for ( ; j < remaining.size(); ++j) {
+                if (remaining[j]) {
+                    ++count;
+                }
+                if (count == index) {
+                    break;
+                }
             }
-            individual.permutation[i] = *it;
+            individual.permutation[i] = j;
         }
         else {
             int overlap1 = get_overlap(i, parent1.permutation[i], spectrum);
@@ -104,7 +114,8 @@ Individual crossover(const Individual &parent1, const Individual &parent2,
             }
         }
         i = individual.permutation[i];
-        remaining.erase(i);
+        remaining[i] = false;
+        --remaining_cnt;
     }
     individual.permutation[i] = 0;
 
