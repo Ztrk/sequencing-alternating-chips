@@ -11,8 +11,15 @@
 using namespace std;
 
 int get_overlap(const string &a, const string &b) {
-    for (int overlap = b.size() - 1; overlap > 0; --overlap) {
-        if (a.substr(a.size() - overlap) == b.substr(0, overlap)) {
+    for (size_t overlap = b.size() - 1; overlap > 0; --overlap) {
+        bool equal = true;
+        for (size_t i = a.size() - overlap, j = 0; j < overlap; ++i, ++j) {
+            if (a[i] != b[j]) {
+                equal = false;
+                break;
+            }
+        }
+        if (equal) {
             return overlap;
         }
     }
@@ -82,7 +89,10 @@ Individual crossover(const Individual &parent1, const Individual &parent2,
     vector<bool> remaining(spectrum.size(), true);
     int remaining_cnt = spectrum.size() - 1;
 
-    int start = start_distribution(generator);
+    int start = 0;
+    if (spectrum.size() < 50) {
+        start = start_distribution(generator);
+    }
     size_t i = start;
     remaining[i] = false;
 
@@ -250,8 +260,6 @@ public:
                 best = i;
             }
         }
-
-        print_population();
 
         /*
         const Individual &best_ind = population[best];
