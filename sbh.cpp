@@ -23,52 +23,54 @@ public:
     vector<int> permutation;
     int fitness;
 
-    void evaluate(const vector<string> &spectrum, const string &start, int expected_length) {
-        auto result = to_sequence(spectrum, start, expected_length);
+    void evaluate(const vector<string> &spectrum, int expected_length) {
+        auto result = to_sequence(spectrum, expected_length);
         int oligos = result.second;
         int length = result.first.size();
-        fitness = oligos * start.size() - length;
+        fitness = oligos * spectrum[0].size() - length;
     }
 
-    pair<string, int> to_sequence(const vector<string> &spectrum, const string &start, int expected_length) {
-        string result = start;
-        int probe_length = start.size();
-        size_t i;
-        for (i = 0; i < permutation.size(); ++i) {
+    pair<string, int> to_sequence(const vector<string> &spectrum, int expected_length) {
+        string result = spectrum[0];
+        int probe_length = spectrum[0].size();
+        int oligos_used = 1;
+        for (size_t i = permutation[0]; i != 0; i = permutation[i]) {
             int result_length = result.size();
-            int overlap = get_overlap(result, spectrum[permutation[i]]);
+            int overlap = get_overlap(result, spectrum[i]);
 
             if (result_length + probe_length - overlap <= expected_length) {
-                result += spectrum[permutation[i]].substr(overlap);
+                result += spectrum[i].substr(overlap);
+                ++oligos_used;
             }
             else {
                 break;
             }
         }
-        return make_pair(result, i + 1);
+        return make_pair(result, oligos_used);
     }
 
     void mutate(mt19937 &generator) {
+        return;
         uniform_int_distribution<> distribution(0, permutation.size() - 1);
         int index1 = distribution(generator), index2 = distribution(generator);
         swap(permutation[index1], permutation[index2]);
     }
 };
 
-Individual crossover(const Individual &parent1, const Individual &parent2, const vector<string> &spectrum, mt19937 &generator) {
+Individual crossover(const Individual &parent1, const Individual &parent2,
+        const vector<string> &spectrum, mt19937 &generator) {
     static bernoulli_distribution take_random_distribution(0.2);
 
     Individual individual;
     individual.permutation = vector<int>(parent1.permutation.size());
     unordered_set<int> remaining(parent1.permutation.begin(), parent1.permutation.end());
+    remaining.erase(0);
 
-    individual.permutation[0] = parent1.permutation[0];
-    remaining.erase(parent1.permutation[0]);
-
-    size_t permutation_length = individual.permutation.size();
-    size_t index1 = 1, index2 = 0;
-    for (size_t i = 1; i < permutation_length; ++i) {
-        if (take_random_distribution(generator)) {
+    size_t i = 0;
+    while (!remaining.empty()) {
+        if (remaining.find(parent1.permutation[i]) == remaining.end()
+                || remaining.find(parent2.permutation[i]) == remaining.end()
+                || take_random_distribution(generator)) {
             uniform_int_distribution<> random_index_distribution(0, remaining.size() - 1);
             int index = random_index_distribution(generator);
             auto it = remaining.begin();
@@ -76,53 +78,41 @@ Individual crossover(const Individual &parent1, const Individual &parent2, const
                 ++it;
             }
             individual.permutation[i] = *it;
-            remaining.erase(it);
         }
         else {
-            while (index1 < permutation_length 
-                    && remaining.find(parent1.permutation[index1]) == remaining.end()) {
-                ++index1;
-            }
-            while (index2 < permutation_length
-                    && remaining.find(parent2.permutation[index2]) == remaining.end()) {
-                ++index2;
-            }
-
-            if (index1 >= permutation_length) {
-                individual.permutation[i] = parent2.permutation[index2++];
-            }
-            else if (index2 >= permutation_length) {
-                individual.permutation[i] = parent1.permutation[index1++];
+            const string &last = spectrum[i];
+            int overlap1 = get_overlap(last, spectrum[parent1.permutation[i]]);
+            int overlap2 = get_overlap(last, spectrum[parent2.permutation[i]]);
+            if (overlap1 >= overlap2) {
+                individual.permutation[i] = parent1.permutation[i];
             }
             else {
-                const string &last = spectrum[individual.permutation[i - 1]];
-                int overlap1 = get_overlap(last, spectrum[parent1.permutation[index1]]);
-                int overlap2 = get_overlap(last, spectrum[parent2.permutation[index2]]);
-                if (overlap1 >= overlap2) {
-                    individual.permutation[i] = parent1.permutation[index1];
-                    remaining.erase(parent1.permutation[index1]);
-                    ++index1;
-                }
-                else {
-                    individual.permutation[i] = parent2.permutation[index2];
-                    remaining.erase(parent2.permutation[index2]);
-                    ++index2;
-                }
+                individual.permutation[i] = parent2.permutation[i];
             }
         }
+        i = individual.permutation[i];
+        remaining.erase(i);
     }
+    individual.permutation[i] = 0;
 
     return individual;
 }
 
 Individual generate(const vector<string> &spectrum, mt19937 &generator) {
-    Individual individual;
-    individual.permutation = vector<int> (spectrum.size());
-    for (size_t i = 0; i < individual.permutation.size(); ++i) {
-        individual.permutation[i] = i;
+    vector<int> permutation(spectrum.size());
+    for (size_t i = 0; i < permutation.size(); ++i) {
+        permutation[i] = i;
     }
 
-    shuffle(individual.permutation.begin(), individual.permutation.end(), generator);
+    shuffle(permutation.begin(), permutation.end(), generator);
+
+    Individual individual;
+    individual.permutation = vector<int>(spectrum.size());
+
+    for (size_t i = 0; i < permutation.size(); ++i) {
+        individual.permutation[permutation[i]] = permutation[(i + 1) % permutation.size()];
+    }
+
     return individual;
 }
 
@@ -147,7 +137,7 @@ public:
     void initialize_population(int population_size) {
         for (int i = 0; i < population_size; ++i) {
             Individual new_individual = generate(spectrum, generator);
-            new_individual.evaluate(spectrum, start, length);
+            new_individual.evaluate(spectrum, length);
             population.push_back(new_individual);
         }
     }
@@ -173,13 +163,16 @@ public:
             parent2 = parent_distribution(generator);
         }
 
-        Individual individual = crossover(population[parent1], population[parent2], spectrum, generator);
+        Individual individual = crossover(population[parent1], population[parent2],
+            spectrum, generator);
 
+        /*
         if (mutation_distribution(generator)) {
             individual.mutate(generator);
         }
+        */
 
-        individual.evaluate(spectrum, start, length);
+        individual.evaluate(spectrum, length);
 
         return individual;
     }
@@ -223,14 +216,14 @@ public:
             }
         }
 
-        for (size_t i = 0; i < population[best].permutation.size(); ++i) {
-            int index = population[best].permutation[i];
-            cout << setw(2) << index << ' ' << spectrum[index] << '\n';
+        const Individual &best_ind = population[best];
+        for (size_t i = best_ind.permutation[0]; i != 0; i = best_ind.permutation[i]) {
+            cout << setw(2) << i << ' ' << spectrum[i] << '\n';
         }
 
         cout << iterations << '\n';
         cout << population[best].fitness << '\n';
-        return population[best].to_sequence(spectrum, start, length).first;
+        return population[best].to_sequence(spectrum, length).first;
     }
 };
 
@@ -248,6 +241,7 @@ int main() {
             }
             else if (key == "#start") {
                 cin >> start;
+                oligonucleotides.push_back(start);
             }
             else if (key == "#probe") {
                 cin >> probe_length;
