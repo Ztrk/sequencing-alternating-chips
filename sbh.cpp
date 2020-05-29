@@ -8,6 +8,15 @@
 #include <vector>
 using namespace std;
 
+int get_overlap(const string &a, const string &b) {
+    for (int overlap = b.size() - 1; overlap > 0; --overlap) {
+        if (a.substr(a.size() - overlap) == b.substr(0, overlap)) {
+            return overlap;
+        }
+    }
+    return 0;
+}
+
 class Individual {
 public:
     vector<int> permutation;
@@ -23,12 +32,7 @@ public:
         size_t i;
         for (i = 0; i < permutation.size(); ++i) {
             int result_length = result.size();
-            int overlap;
-            for (overlap = probe_length - 1; overlap >= 0; --overlap) {
-                if (result.substr(result_length - overlap) == spectrum[permutation[i]].substr(0, overlap)) {
-                    break;
-                }
-            }
+            int overlap = get_overlap(result, spectrum[permutation[i]]);
 
             if (result_length + probe_length - overlap <= expected_length) {
                 result += spectrum[permutation[i]].substr(overlap);
@@ -47,30 +51,49 @@ public:
     }
 };
 
-Individual crossover(const Individual &parent1, const Individual &parent2, mt19937 &generator) {
-    uniform_int_distribution<> distribution(0, parent1.permutation.size() - 1);
-    size_t index1 = distribution(generator), index2 = distribution(generator);
-    if (index1 > index2) {
-        swap(index1, index2);
-    }
-
+Individual crossover(const Individual &parent1, const Individual &parent2, const vector<string> &spectrum) {
     Individual individual;
-    individual.permutation = parent1.permutation;
+    individual.permutation = vector<int>(parent1.permutation.size());
     unordered_set<int> used;
 
-    for (size_t i = index1; i <= index2; ++i) {
-        used.insert(individual.permutation[i]);
-    }
+    individual.permutation[0] = parent1.permutation[0];
+    used.insert(parent1.permutation[0]);
 
-    for (size_t i = 0, j = 0; i < individual.permutation.size(); ++i) {
-        if (j == index1) {
-            j = index2 + 1;
+    size_t permutation_length = individual.permutation.size();
+    size_t index1 = 1, index2 = 0;
+    for (size_t i = 1; i < permutation_length; ++i) {
+        while (index1 < permutation_length 
+                && used.find(parent1.permutation[index1]) != used.end()) {
+            ++index1;
+        }
+        while (index2 < permutation_length
+                && used.find(parent2.permutation[index2]) != used.end()) {
+            ++index2;
         }
 
-        if (used.find(parent2.permutation[i]) == used.end()) {
-            individual.permutation[j++] = parent2.permutation[i];
+        if (index1 >= permutation_length) {
+            individual.permutation[i] = parent2.permutation[index2++];
+        }
+        else if (index2 >= permutation_length) {
+            individual.permutation[i] = parent1.permutation[index1++];
+        }
+        else {
+            const string &last = spectrum[individual.permutation[i - 1]];
+            int overlap1 = get_overlap(last, spectrum[parent1.permutation[index1]]);
+            int overlap2 = get_overlap(last, spectrum[parent2.permutation[index2]]);
+            if (overlap1 >= overlap2) {
+                individual.permutation[i] = parent1.permutation[index1];
+                used.insert(parent1.permutation[index1]);
+                ++index1;
+            }
+            else {
+                individual.permutation[i] = parent2.permutation[index2];
+                used.insert(parent2.permutation[index2]);
+                ++index2;
+            }
         }
     }
+
     return individual;
 }
 
@@ -119,7 +142,7 @@ public:
                 parent2 = parent_distribution(generator);
             }
 
-            Individual individual = crossover(population[parent1], population[parent2], generator);
+            Individual individual = crossover(population[parent1], population[parent2], spectrum);
 
             if (mutation_distribution(generator)) {
                 individual.mutate(generator);
