@@ -24,7 +24,10 @@ public:
     int fitness;
 
     void evaluate(const vector<string> &spectrum, const string &start, int expected_length) {
-        fitness = to_sequence(spectrum, start, expected_length).second;
+        auto result = to_sequence(spectrum, start, expected_length);
+        int oligos = result.second;
+        int length = result.first.size();
+        fitness = oligos * start.size() - length;
     }
 
     pair<string, int> to_sequence(const vector<string> &spectrum, const string &start, int expected_length) {
@@ -42,7 +45,7 @@ public:
                 break;
             }
         }
-        return make_pair(result, i);
+        return make_pair(result, i + 1);
     }
 
     void mutate(mt19937 &generator) {
