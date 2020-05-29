@@ -2,6 +2,7 @@
 #include <chrono>
 #include <iomanip>
 #include <iostream>
+#include <map>
 #include <cmath>
 #include <random>
 #include <string>
@@ -16,6 +17,19 @@ int get_overlap(const string &a, const string &b) {
         }
     }
     return 0;
+}
+
+int get_overlap(int a, int b, const vector<string> &spectrum) {
+    return get_overlap(spectrum[a], spectrum[b]);
+    /*
+    static map<pair<int, int>, int> overlaps;
+    pair<int, int> indexes = make_pair(a, b);
+    if (overlaps.find(indexes) == overlaps.end()) {
+        overlaps[indexes] = get_overlap(spectrum[a], spectrum[b]);
+        cout << "Overlaps size: " << overlaps.size() << '\n';
+    }
+    return overlaps[indexes];
+    */
 }
 
 class Individual {
@@ -34,9 +48,9 @@ public:
         string result = spectrum[0];
         int probe_length = spectrum[0].size();
         int oligos_used = 1;
-        for (size_t i = permutation[0]; i != 0; i = permutation[i]) {
+        for (size_t i = permutation[0], prev_i = 0; i != 0; prev_i = i, i = permutation[i]) {
             int result_length = result.size();
-            int overlap = get_overlap(result, spectrum[i]);
+            int overlap = get_overlap(prev_i, i, spectrum);
 
             if (result_length + probe_length - overlap <= expected_length) {
                 result += spectrum[i].substr(overlap);
@@ -80,9 +94,8 @@ Individual crossover(const Individual &parent1, const Individual &parent2,
             individual.permutation[i] = *it;
         }
         else {
-            const string &last = spectrum[i];
-            int overlap1 = get_overlap(last, spectrum[parent1.permutation[i]]);
-            int overlap2 = get_overlap(last, spectrum[parent2.permutation[i]]);
+            int overlap1 = get_overlap(i, parent1.permutation[i], spectrum);
+            int overlap2 = get_overlap(i, parent2.permutation[i], spectrum);
             if (overlap1 >= overlap2) {
                 individual.permutation[i] = parent1.permutation[i];
             }
@@ -121,18 +134,17 @@ public:
     const int population_size = 50;
     const int best_taken = 15;
     const int mutation_chance = 0.2;
-    const int solving_time = 1000;
+    const int solving_time = 100000;
 
     random_device rd;
     mt19937 generator{rd()};
     vector<Individual> population;
 
     vector<string> spectrum;
-    string start;
     int length;
 
-    Solver(const vector<string> &spectrum, const string &start, int length) 
-        : spectrum(spectrum), start(start), length(length) {}
+    Solver(const vector<string> &spectrum, int length)
+        : spectrum(spectrum), length(length) {}
 
     void initialize_population(int population_size) {
         for (int i = 0; i < population_size; ++i) {
@@ -207,8 +219,6 @@ public:
             ++iterations;
         }
 
-        print_population();
-
         int best = 0;
         for (int i = 0; i < population_size; ++i) {
             if (population[i].fitness > population[best].fitness) {
@@ -216,18 +226,25 @@ public:
             }
         }
 
+        /*
         const Individual &best_ind = population[best];
         for (size_t i = best_ind.permutation[0]; i != 0; i = best_ind.permutation[i]) {
             cout << setw(2) << i << ' ' << spectrum[i] << '\n';
         }
+        */
 
-        cout << iterations << '\n';
-        cout << population[best].fitness << '\n';
+        cout << "Iterations: " << iterations << '\n';
+        cout << "Fitness: " << population[best].fitness << '\n';
+        int k = spectrum[0].size();
+        cout << "Max fitness: " << (length - k) * (k - 1) << '\n';
         return population[best].to_sequence(spectrum, length).first;
     }
 };
 
 int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
     string start;
     int length, probe_length;
     int spectrum_length;
@@ -257,7 +274,7 @@ int main() {
         }
     }
 
-    Solver solver(oligonucleotides, start, length);
+    Solver solver(oligonucleotides, length);
     cout << solver.solve() << '\n';
 
     return 0;
