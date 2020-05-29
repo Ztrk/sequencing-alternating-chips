@@ -26,7 +26,6 @@ int get_overlap(int a, int b, const vector<string> &spectrum) {
     pair<int, int> indexes = make_pair(a, b);
     if (overlaps.find(indexes) == overlaps.end()) {
         overlaps[indexes] = get_overlap(spectrum[a], spectrum[b]);
-        cout << "Overlaps size: " << overlaps.size() << '\n';
     }
     return overlaps[indexes];
     */
@@ -73,7 +72,7 @@ public:
 
 Individual crossover(const Individual &parent1, const Individual &parent2,
         const vector<string> &spectrum, mt19937 &generator) {
-    static bernoulli_distribution take_random_distribution(0.2);
+    static bernoulli_distribution take_best_distribution(0.2);
 
     Individual individual;
     individual.permutation = vector<int>(parent1.permutation.size());
@@ -84,10 +83,21 @@ Individual crossover(const Individual &parent1, const Individual &parent2,
 
     size_t i = 0;
     while (remaining_cnt != 0) {
-        if (!remaining[parent1.permutation[i]]
-                || !remaining[parent2.permutation[i]]
-                || take_random_distribution(generator)) {
-
+        if (take_best_distribution(generator)) {
+            int best_oligo = 0;
+            int best_overlap = -1000000;
+            for (size_t j = 0; j < remaining.size(); ++j) {
+                if (remaining[j]) {
+                    int overlap = get_overlap(i, j, spectrum);
+                    if (overlap > best_overlap) {
+                        best_overlap = overlap;
+                        best_oligo = j;
+                    }
+                }
+            }
+            individual.permutation[i] = best_oligo;
+        }
+        else if (!remaining[parent1.permutation[i]] || !remaining[parent2.permutation[i]]) {
             uniform_int_distribution<> random_index_distribution(0, remaining_cnt - 1);
             int index = random_index_distribution(generator);
 
@@ -145,7 +155,7 @@ public:
     const int population_size = 50;
     const int best_taken = 15;
     const int mutation_chance = 0.2;
-    const int solving_time = 100000;
+    const int solving_time = 1000;
 
     random_device rd;
     mt19937 generator{rd()};
