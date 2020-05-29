@@ -72,16 +72,19 @@ public:
 
 Individual crossover(const Individual &parent1, const Individual &parent2,
         const vector<string> &spectrum, mt19937 &generator) {
+
     static bernoulli_distribution take_best_distribution(0.2);
+    static uniform_int_distribution<> start_distribution(0, spectrum.size() - 1);
 
     Individual individual;
     individual.permutation = vector<int>(parent1.permutation.size());
 
     vector<bool> remaining(spectrum.size(), true);
     int remaining_cnt = spectrum.size() - 1;
-    remaining[0] = false;
 
-    size_t i = 0;
+    size_t i = start_distribution(generator);
+    remaining[i] = false;
+
     while (remaining_cnt != 0) {
         if (take_best_distribution(generator)) {
             int best_oligo = 0;
