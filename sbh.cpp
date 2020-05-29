@@ -110,11 +110,23 @@ Individual generate(const vector<string> &spectrum, mt19937 &generator) {
 
 class Solver {
 public:
+    const int population_size = 50;
+    const int best_taken = 10;
+    const int mutation_chance = 0.2;
+    const int solving_time = 10;
+
     random_device rd;
     mt19937 generator{rd()};
     vector<Individual> population;
 
-    void initialize_population(const vector<string> &spectrum, int population_size, string &start, int length) {
+    vector<string> spectrum;
+    string start;
+    int length;
+
+    Solver(const vector<string> &spectrum, const string &start, int length) 
+        : spectrum(spectrum), start(start), length(length) {}
+
+    void initialize_population(int population_size) {
         for (int i = 0; i < population_size; ++i) {
             Individual new_individual = generate(spectrum, generator);
             new_individual.evaluate(spectrum, start, length);
@@ -122,40 +134,64 @@ public:
         }
     }
 
-    string solve(vector<string> &spectrum, string &start, int length) {
-        int population_size = 50;
-        int mutation_chance = 0.2;
-        bernoulli_distribution mutation_distribution(mutation_chance);
-        uniform_int_distribution<> parent_distribution(0, population_size - 1);
+    void print_population() {
+        for (int i = 0; i < population_size; ++i) {
+            cout << i << ". F:";
+            cout << population[i].fitness << " G: ";
+            for (size_t j = 0; j < population[i].permutation.size(); ++j) {
+                cout << population[i].permutation[j] << ' ';
+            }
+            cout << '\n';
+        }
+    }
 
+    Individual generate_new_indiviudal() {
+        static bernoulli_distribution mutation_distribution(mutation_chance);
+        static uniform_int_distribution<> parent_distribution(0, population_size - 1);
+
+        int parent1 = parent_distribution(generator);
+        int parent2 = parent_distribution(generator);
+        while (parent2 == parent1) {
+            parent2 = parent_distribution(generator);
+        }
+
+        Individual individual = crossover(population[parent1], population[parent2], spectrum);
+
+        if (mutation_distribution(generator)) {
+            individual.mutate(generator);
+        }
+
+        individual.evaluate(spectrum, start, length);
+
+        return individual;
+    }
+
+    string solve() {
         int iterations = 0;
         auto time_start = chrono::high_resolution_clock::now();
-        auto time_limit = chrono::milliseconds(1000);
+        auto time_limit = chrono::milliseconds(solving_time);
 
-        initialize_population(spectrum, population_size, start, length);
+        initialize_population(population_size);
 
         while (chrono::high_resolution_clock::now() - time_start < time_limit) {
+            vector<Individual> new_population(population_size);
+            // partial sort
+            nth_element(population.begin(), population.begin() + best_taken, population.end(),
+                [](Individual &a, Individual &b) { return a.fitness > b.fitness; });
 
-            int parent1 = parent_distribution(generator);
-            int parent2 = parent_distribution(generator);
-            while (parent2 == parent1) {
-                parent2 = parent_distribution(generator);
+            for (int i = 0; i < best_taken; ++i) {
+                new_population[i] = population[i];
             }
 
-            Individual individual = crossover(population[parent1], population[parent2], spectrum);
-
-            if (mutation_distribution(generator)) {
-                individual.mutate(generator);
+            for (int i = best_taken; i < population_size; ++i) {
+                new_population[i] = generate_new_indiviudal();
             }
 
-            individual.evaluate(spectrum, start, length);
-
-            int worse_parent = population[parent1].fitness > population[parent2].fitness ? parent2 : parent1;
-            if (individual.fitness > population[worse_parent].fitness) {
-                population[worse_parent] = individual;
-            }
+            population = new_population;
             ++iterations;
         }
+
+        print_population();
 
         int best = 0;
         for (int i = 0; i < population_size; ++i) {
@@ -202,8 +238,8 @@ int main() {
         }
     }
 
-    Solver solver;
-    cout << solver.solve(oligonucleotides, start, length) << '\n';
+    Solver solver(oligonucleotides, start, length);
+    cout << solver.solve() << '\n';
 
     return 0;
 }
