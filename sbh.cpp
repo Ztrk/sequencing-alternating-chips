@@ -82,7 +82,8 @@ Individual crossover(const Individual &parent1, const Individual &parent2,
     vector<bool> remaining(spectrum.size(), true);
     int remaining_cnt = spectrum.size() - 1;
 
-    size_t i = start_distribution(generator);
+    int start = start_distribution(generator);
+    size_t i = start;
     remaining[i] = false;
 
     while (remaining_cnt != 0) {
@@ -130,7 +131,7 @@ Individual crossover(const Individual &parent1, const Individual &parent2,
         remaining[i] = false;
         --remaining_cnt;
     }
-    individual.permutation[i] = 0;
+    individual.permutation[i] = start;
 
     return individual;
 }
@@ -249,6 +250,8 @@ public:
                 best = i;
             }
         }
+
+        print_population();
 
         /*
         const Individual &best_ind = population[best];
