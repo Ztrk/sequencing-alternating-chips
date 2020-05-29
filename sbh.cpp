@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <chrono>
+#include <iomanip>
 #include <iostream>
 #include <cmath>
 #include <random>
@@ -51,45 +52,59 @@ public:
     }
 };
 
-Individual crossover(const Individual &parent1, const Individual &parent2, const vector<string> &spectrum) {
+Individual crossover(const Individual &parent1, const Individual &parent2, const vector<string> &spectrum, mt19937 &generator) {
+    static bernoulli_distribution take_random_distribution(0.2);
+
     Individual individual;
     individual.permutation = vector<int>(parent1.permutation.size());
-    unordered_set<int> used;
+    unordered_set<int> remaining(parent1.permutation.begin(), parent1.permutation.end());
 
     individual.permutation[0] = parent1.permutation[0];
-    used.insert(parent1.permutation[0]);
+    remaining.erase(parent1.permutation[0]);
 
     size_t permutation_length = individual.permutation.size();
     size_t index1 = 1, index2 = 0;
     for (size_t i = 1; i < permutation_length; ++i) {
-        while (index1 < permutation_length 
-                && used.find(parent1.permutation[index1]) != used.end()) {
-            ++index1;
-        }
-        while (index2 < permutation_length
-                && used.find(parent2.permutation[index2]) != used.end()) {
-            ++index2;
-        }
-
-        if (index1 >= permutation_length) {
-            individual.permutation[i] = parent2.permutation[index2++];
-        }
-        else if (index2 >= permutation_length) {
-            individual.permutation[i] = parent1.permutation[index1++];
+        if (take_random_distribution(generator)) {
+            uniform_int_distribution<> random_index_distribution(0, remaining.size() - 1);
+            int index = random_index_distribution(generator);
+            auto it = remaining.begin();
+            for (int i = 0; i < index; ++i) {
+                ++it;
+            }
+            individual.permutation[i] = *it;
+            remaining.erase(it);
         }
         else {
-            const string &last = spectrum[individual.permutation[i - 1]];
-            int overlap1 = get_overlap(last, spectrum[parent1.permutation[index1]]);
-            int overlap2 = get_overlap(last, spectrum[parent2.permutation[index2]]);
-            if (overlap1 >= overlap2) {
-                individual.permutation[i] = parent1.permutation[index1];
-                used.insert(parent1.permutation[index1]);
+            while (index1 < permutation_length 
+                    && remaining.find(parent1.permutation[index1]) == remaining.end()) {
                 ++index1;
             }
-            else {
-                individual.permutation[i] = parent2.permutation[index2];
-                used.insert(parent2.permutation[index2]);
+            while (index2 < permutation_length
+                    && remaining.find(parent2.permutation[index2]) == remaining.end()) {
                 ++index2;
+            }
+
+            if (index1 >= permutation_length) {
+                individual.permutation[i] = parent2.permutation[index2++];
+            }
+            else if (index2 >= permutation_length) {
+                individual.permutation[i] = parent1.permutation[index1++];
+            }
+            else {
+                const string &last = spectrum[individual.permutation[i - 1]];
+                int overlap1 = get_overlap(last, spectrum[parent1.permutation[index1]]);
+                int overlap2 = get_overlap(last, spectrum[parent2.permutation[index2]]);
+                if (overlap1 >= overlap2) {
+                    individual.permutation[i] = parent1.permutation[index1];
+                    remaining.erase(parent1.permutation[index1]);
+                    ++index1;
+                }
+                else {
+                    individual.permutation[i] = parent2.permutation[index2];
+                    remaining.erase(parent2.permutation[index2]);
+                    ++index2;
+                }
             }
         }
     }
@@ -111,9 +126,9 @@ Individual generate(const vector<string> &spectrum, mt19937 &generator) {
 class Solver {
 public:
     const int population_size = 50;
-    const int best_taken = 10;
+    const int best_taken = 15;
     const int mutation_chance = 0.2;
-    const int solving_time = 10;
+    const int solving_time = 1000;
 
     random_device rd;
     mt19937 generator{rd()};
@@ -155,7 +170,7 @@ public:
             parent2 = parent_distribution(generator);
         }
 
-        Individual individual = crossover(population[parent1], population[parent2], spectrum);
+        Individual individual = crossover(population[parent1], population[parent2], spectrum, generator);
 
         if (mutation_distribution(generator)) {
             individual.mutate(generator);
@@ -172,12 +187,17 @@ public:
         auto time_limit = chrono::milliseconds(solving_time);
 
         initialize_population(population_size);
+        int best_fitness = -1000000000;
 
         while (chrono::high_resolution_clock::now() - time_start < time_limit) {
             vector<Individual> new_population(population_size);
-            // partial sort
-            nth_element(population.begin(), population.begin() + best_taken, population.end(),
+
+            sort(population.begin(), population.end(),
                 [](Individual &a, Individual &b) { return a.fitness > b.fitness; });
+            if (population[0].fitness > best_fitness) {
+                best_fitness = population[0].fitness;
+                cout << iterations << ". Better result: " << population[0].fitness << '\n';
+            }
 
             for (int i = 0; i < best_taken; ++i) {
                 new_population[i] = population[i];
@@ -199,6 +219,12 @@ public:
                 best = i;
             }
         }
+
+        for (size_t i = 0; i < population[best].permutation.size(); ++i) {
+            int index = population[best].permutation[i];
+            cout << setw(2) << index << ' ' << spectrum[index] << '\n';
+        }
+
         cout << iterations << '\n';
         cout << population[best].fitness << '\n';
         return population[best].to_sequence(spectrum, start, length).first;
@@ -206,10 +232,6 @@ public:
 };
 
 int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
-
-
     string start;
     int length, probe_length;
     int spectrum_length;
