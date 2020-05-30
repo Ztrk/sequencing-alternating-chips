@@ -27,15 +27,13 @@ int get_overlap(const string &a, const string &b) {
 }
 
 int get_overlap(int a, int b, const vector<string> &spectrum) {
-    return get_overlap(spectrum[a], spectrum[b]);
-    /*
-    static map<pair<int, int>, int> overlaps;
-    pair<int, int> indexes = make_pair(a, b);
-    if (overlaps.find(indexes) == overlaps.end()) {
-        overlaps[indexes] = get_overlap(spectrum[a], spectrum[b]);
+    //return get_overlap(spectrum[a], spectrum[b]);
+
+    static vector<vector<int>> overlaps(spectrum.size(), vector<int>(spectrum.size(), -1));
+    if (overlaps[a][b] == -1) {
+        overlaps[a][b] = get_overlap(spectrum[a], spectrum[b]);
     }
-    return overlaps[indexes];
-    */
+    return overlaps[a][b];
 }
 
 class Individual {
@@ -86,46 +84,47 @@ Individual crossover(const Individual &parent1, const Individual &parent2,
     Individual individual;
     individual.permutation = vector<int>(parent1.permutation.size());
 
-    vector<bool> remaining(spectrum.size(), true);
+    unordered_set<int> remaining(spectrum.size());
+    for (size_t i = 0; i < spectrum.size(); ++i) {
+        remaining.insert(i);
+    }
     int remaining_cnt = spectrum.size() - 1;
 
     int start = 0;
-    if (spectrum.size() < 50) {
+    if (spectrum.size() < 100) {
         start = start_distribution(generator);
     }
     size_t i = start;
-    remaining[i] = false;
+    remaining.erase(i);
+
+    int probe_length = spectrum[0].size();
 
     while (remaining_cnt != 0) {
         if (take_best_distribution(generator)) {
             int best_oligo = 0;
             int best_overlap = -1000000;
-            for (size_t j = 0; j < remaining.size(); ++j) {
-                if (remaining[j]) {
-                    int overlap = get_overlap(i, j, spectrum);
-                    if (overlap > best_overlap) {
-                        best_overlap = overlap;
-                        best_oligo = j;
+            for (int j : remaining) {
+                int overlap = get_overlap(i, j, spectrum);
+                if (overlap > best_overlap) {
+                    best_overlap = overlap;
+                    best_oligo = j;
+                    if (best_overlap + 1 == probe_length) {
+                        break;
                     }
                 }
             }
             individual.permutation[i] = best_oligo;
         }
-        else if (!remaining[parent1.permutation[i]] || !remaining[parent2.permutation[i]]) {
+        else if (remaining.find(parent1.permutation[i]) == remaining.end()
+                || remaining.find(parent2.permutation[i]) == remaining.end()) {
             uniform_int_distribution<> random_index_distribution(0, remaining_cnt - 1);
             int index = random_index_distribution(generator);
 
-            int count = -1;
-            size_t j = 0;
-            for ( ; j < remaining.size(); ++j) {
-                if (remaining[j]) {
-                    ++count;
-                }
-                if (count == index) {
-                    break;
-                }
+            auto it = remaining.begin();
+            for (int i = 0; i < index; ++i) {
+                ++it;
             }
-            individual.permutation[i] = j;
+            individual.permutation[i] = *it;
         }
         else {
             int overlap1 = get_overlap(i, parent1.permutation[i], spectrum);
@@ -138,7 +137,7 @@ Individual crossover(const Individual &parent1, const Individual &parent2,
             }
         }
         i = individual.permutation[i];
-        remaining[i] = false;
+        remaining.erase(i);
         --remaining_cnt;
     }
     individual.permutation[i] = start;
