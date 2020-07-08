@@ -6,8 +6,15 @@
 using namespace std;
 
 int get_overlap(const string &a, const string &b) {
-    for (int overlap = b.size() - 1; overlap > 0; --overlap) {
-        if (a.substr(a.size() - overlap) == b.substr(0, overlap)) {
+    for (size_t overlap = b.size() - 1; overlap > 0; --overlap) {
+        bool equal = true;
+        for (size_t i = a.size() - overlap, j = 0; j < overlap; ++i, ++j) {
+            if (a[i] != b[j]) {
+                equal = false;
+                break;
+            }
+        }
+        if (equal) {
             return overlap;
         }
     }
@@ -22,17 +29,15 @@ public:
         int probe_length = spectrum[0].size();
         while (result.size() < length) {
             string best;
-            int best_overlap = 1000000000;
-            for (const string &olig1 : spectrum) {
+            int best_overlap = -1000000000;
+            for (const string &olig1 : spectrum_set) {
                 int overlap1 = get_overlap(result, olig1);
-                if (overlap1 < best_overlap) {
-                    for (const string &olig2 : spectrum) {
-                        if (olig1 != olig2) {
-                            int overlap2 = get_overlap(olig1, olig2);
-                            if (overlap1 + overlap2 < best_overlap) {
-                                best_overlap = overlap1 + overlap2;
-                                best = olig1;
-                            }
+                for (const string &olig2 : spectrum_set) {
+                    if (olig1 != olig2) {
+                        int overlap2 = get_overlap(olig1, olig2);
+                        if (overlap1 + overlap2 > best_overlap) {
+                            best_overlap = overlap1 + overlap2;
+                            best = olig1;
                         }
                     }
                 }
@@ -85,7 +90,7 @@ int main() {
     auto time_start = chrono::high_resolution_clock::now();
     string result = solver.solve(oligonucleotides, start, length);
     auto elapsed = chrono::high_resolution_clock::now() - time_start;
-    cout << chrono::duration_cast<chrono::microseconds>(elapsed).count() << " ms" << endl;
+    cout << chrono::duration_cast<chrono::milliseconds>(elapsed).count() << " ms" << endl;
     cout << result << '\n';
 
     return 0;

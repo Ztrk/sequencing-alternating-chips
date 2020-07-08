@@ -8,6 +8,7 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
+#include "xml_reader.h"
 using namespace std;
 
 int get_overlap(const string &a, const string &b) {
@@ -27,8 +28,6 @@ int get_overlap(const string &a, const string &b) {
 }
 
 int get_overlap(int a, int b, const vector<string> &spectrum) {
-    //return get_overlap(spectrum[a], spectrum[b]);
-
     static vector<vector<int>> overlaps(spectrum.size(), vector<int>(spectrum.size(), -1));
     if (overlaps[a][b] == -1) {
         overlaps[a][b] = get_overlap(spectrum[a], spectrum[b]);
@@ -73,7 +72,58 @@ public:
         int index1 = distribution(generator), index2 = distribution(generator);
         swap(permutation[index1], permutation[index2]);
     }
+
+    void print(const vector<string> &spectrum) {
+        for (size_t i = permutation[0]; i != 0; i = permutation[i]) {
+            cout << setw(2) << i << ' ' << spectrum[i] << '\n';
+        }
+    }
 };
+
+Individual greedy_algorithm(const vector<string> &spectrum, int start) {
+    Individual result;
+    result.permutation = vector<int>(spectrum.size());
+    unordered_set<int> remaining;
+    for (size_t i = 0; i < spectrum.size(); ++i) {
+        remaining.insert(i);
+    }
+    remaining.erase(start);
+
+    int probe_length = spectrum[0].size();
+    size_t i = start;
+    while (remaining.size() > 1) {
+        int best_oligo;
+        int best_overlap = -1000000000;
+        for (int oligo1 : remaining) {
+            int overlap1 = get_overlap(i, oligo1, spectrum);
+            if (overlap1 + probe_length - 1 <= best_overlap) {
+                continue;
+            }
+            for (int oligo2 : remaining) {
+                if (oligo1 != oligo2) {
+                    int overlap2 = get_overlap(oligo1, oligo2, spectrum);
+                    if (overlap1 + overlap2 > best_overlap) {
+                        best_overlap = overlap1 + overlap2;
+                        best_oligo = oligo1;
+                        if (overlap2 == probe_length - 1) {
+                            break;
+                        }
+                    }
+                }
+            }
+            if (best_overlap == 2 * probe_length - 2) {
+                break;
+            }
+        }
+        remaining.erase(best_oligo);
+        result.permutation[i] = best_oligo;
+        i = best_oligo;
+    }
+    result.permutation[i] = *remaining.begin();
+    i = result.permutation[i];
+    result.permutation[i] = start;
+    return result;
+}
 
 Individual crossover(const Individual &parent1, const Individual &parent2,
         const vector<string> &spectrum, mt19937 &generator) {
@@ -91,9 +141,6 @@ Individual crossover(const Individual &parent1, const Individual &parent2,
     int remaining_cnt = spectrum.size() - 1;
 
     int start = 0;
-    if (spectrum.size() < 100) {
-        start = start_distribution(generator);
-    }
     size_t i = start;
     remaining.erase(i);
 
@@ -168,7 +215,8 @@ public:
     const int population_size = 50;
     const int best_taken = 15;
     const int mutation_chance = 0.2;
-    const int solving_time = 1000;
+    const int iterations_without_improvement = 100;
+    const int solving_time = 1950;
 
     random_device rd;
     mt19937 generator{rd()};
@@ -181,7 +229,10 @@ public:
         : spectrum(spectrum), length(length) {}
 
     void initialize_population(int population_size) {
-        for (int i = 0; i < population_size; ++i) {
+        Individual greedy_individual = greedy_algorithm(spectrum, 0);
+        greedy_individual.evaluate(spectrum, length);
+        population.push_back(greedy_individual);
+        for (int i = 1; i < population_size; ++i) {
             Individual new_individual = generate(spectrum, generator);
             new_individual.evaluate(spectrum, length);
             population.push_back(new_individual);
@@ -260,13 +311,6 @@ public:
             }
         }
 
-        /*
-        const Individual &best_ind = population[best];
-        for (size_t i = best_ind.permutation[0]; i != 0; i = best_ind.permutation[i]) {
-            cout << setw(2) << i << ' ' << spectrum[i] << '\n';
-        }
-        */
-
         cout << "Iterations: " << iterations << '\n';
         cout << "Fitness: " << population[best].fitness << '\n';
         int k = spectrum[0].size();
@@ -276,40 +320,23 @@ public:
 };
 
 int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
 
-    string start;
-    int length, probe_length;
-    int spectrum_length;
+    XmlReader reader;
+    reader.read(cin);
 
-    vector<string> oligonucleotides;
-    string key;
-    while (cin >> key) {
-        if (key[0] == '#') {
-            if (key == "#length") {
-                cin >> length;
-            }
-            else if (key == "#start") {
-                cin >> start;
-                oligonucleotides.push_back(start);
-            }
-            else if (key == "#probe") {
-                cin >> probe_length;
-            }
-            else if (key == "#spectrum") {
-                cin >> spectrum_length;
-            }
-        }
-        else {
-            if (key != start) {
-                oligonucleotides.push_back(key);
-            }
-        }
-    }
+    int length = reader.get_length();
+    string start = reader.get_start();
+
+    vector<string> oligonucleotides = reader.get_even_oligonucleotides();
+    vector<string> odd = reader.get_odd_oligonucleotides();
+    oligonucleotides.insert(oligonucleotides.end(), odd.begin(), odd.end());
 
     Solver solver(oligonucleotides, length);
-    cout << solver.solve() << '\n';
+    cout << solver.solve() << endl;
+
+    //Individual greedy_individual = greedy_algorithm(oligonucleotides, 0);
+    //cout << greedy_individual.to_sequence(oligonucleotides, length).first << endl;
+
 
     return 0;
 }
