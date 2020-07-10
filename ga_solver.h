@@ -31,9 +31,9 @@ Individual generate(const std::vector<std::string> &spectrum, std::mt19937 &gene
 
 class GaSolver {
 public:
-    GaSolver(const std::vector<std::string> &even_spectrum, 
+    GaSolver(const std::vector<std::string> &even_spectrum_input, 
         const std::vector<std::string> &odd_spectrum, 
-        std::string &start, int length);
+        const std::string &start, int length);
     std::string solve();
 
     void print_population();
@@ -43,7 +43,7 @@ private:
     const int best_taken = 15;
     const int mutation_chance = 0.2;
     const int iterations_without_improvement = 100;
-    const int solving_time = 200;
+    const int solving_time = 2000;
 
     std::random_device rd;
     std::mt19937 generator{rd()};
