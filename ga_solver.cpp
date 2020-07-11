@@ -2,7 +2,6 @@
 #include <chrono>
 #include <iomanip>
 #include <iostream>
-#include <unordered_set>
 #include "ga_solver.h"
 using namespace std;
 
@@ -34,7 +33,7 @@ int get_overlap(int a, int b, const vector<string> &spectrum) {
 GaSolver::GaSolver(const vector<string> &even_spectrum_input, 
     const vector<string> &odd_spectrum, 
     const string &start, int length)
-: even_spectrum(even_spectrum_input), odd_spectrum(odd_spectrum), length(length) {
+: even_spectrum(even_spectrum_input), odd_spectrum(odd_spectrum.begin(), odd_spectrum.end()), length(length) {
     string even_start = start;
     for (size_t i = 1; i < even_start.size(); i += 2) {
         even_start[i] = 'X';
@@ -102,7 +101,7 @@ string GaSolver::solve() {
     cout << "Iterations: " << iterations << '\n';
     cout << "Fitness: " << population[best].fitness << '\n';
     int k = even_spectrum[0].size();
-    cout << "Max fitness: " << (length - k) * (k - 1) << '\n';
+    cout << "Max fitness: " << (even_spectrum.size() + odd_spectrum.size()) * k - length << '\n';
     return population[best].to_sequence(even_spectrum, length).first;
 }
 
@@ -112,7 +111,7 @@ void GaSolver::initialize_population(int population_size) {
     // population.push_back(greedy_individual);
     for (int i = 0; i < population_size; ++i) {
         Individual new_individual = generate(even_spectrum, generator);
-        new_individual.evaluate(even_spectrum, length);
+        new_individual.evaluate(even_spectrum, odd_spectrum, length);
         population.push_back(new_individual);
     }
 }
@@ -128,7 +127,7 @@ Individual GaSolver::generate_new_indiviudal() {
     }
 
     Individual individual = crossover(population[parent1], population[parent2],
-        even_spectrum, generator);
+        even_spectrum, odd_spectrum, generator);
 
     /*
     if (mutation_distribution(generator)) {
@@ -136,24 +135,46 @@ Individual GaSolver::generate_new_indiviudal() {
     }
     */
 
-    individual.evaluate(even_spectrum, length);
+    individual.evaluate(even_spectrum, odd_spectrum, length);
 
     return individual;
 }
 
-void Individual::evaluate(const vector<string> &spectrum, int expected_length) {
-    auto result = to_sequence(spectrum, expected_length);
-    int oligos = result.second;
+void Individual::evaluate(const vector<string> &even_spectrum, const unordered_set<string> &odd_spectrum, int expected_length) {
+    auto result = to_sequence(even_spectrum, expected_length);
+    int k = even_spectrum[0].size();
+    int even_oligos = result.second;
     int length = result.first.size();
-    fitness = oligos * spectrum[0].size() - length;
+    int odd_oligos = 0;
+    string &sequence = result.first;
+    string oligo;
+    for (size_t i = 0; i <= sequence.size() - k + 1; ++i) {
+        for (size_t j = 0; j < k - 2; ++j) {
+            if (j % 2 == 0) {
+                oligo += sequence[i + j];
+            }
+            else {
+                oligo += 'X';
+            }
+        }
+        oligo += sequence[i + k - 2];
+        if (odd_spectrum.find(oligo) != odd_spectrum.end()) {
+            ++odd_oligos;
+        }
+        oligo.erase();
+    }
+    fitness = even_oligos * k - length + k * odd_oligos;
 }
 
 pair<string, int> Individual::to_sequence(const vector<string> &spectrum, int expected_length) {
     auto even = to_sequence(spectrum, expected_length, 0);
     auto odd = to_sequence(spectrum, expected_length - 1, 1);
     string result;
-    for (size_t i = 0; i < min(even.first.size(), odd.first.size()); i += 2) {
+    for (size_t i = 0; i < even.first.size(); i += 2) {
         result += even.first[i];
+        if (i >= odd.first.size()) {
+            break;
+        }
         result += odd.first[i];
     }
     return make_pair(result, even.second + odd.second);
@@ -184,9 +205,10 @@ pair<string, int> Individual::to_sequence(const vector<string> &spectrum, int ex
 
 void Individual::mutate(mt19937 &generator) {
     return;
-    uniform_int_distribution<> distribution(0, permutation.size() - 1);
-    int index1 = distribution(generator), index2 = distribution(generator);
-    swap(permutation[index1], permutation[index2]);
+
+    //uniform_int_distribution<> distribution(0, permutation.size() - 1);
+    //int index1 = distribution(generator), index2 = distribution(generator);
+    //swap(permutation[index1], permutation[index2]);
 }
 
 void Individual::print(const vector<string> &spectrum) {
@@ -241,37 +263,50 @@ Individual greedy_algorithm(const vector<string> &spectrum, int start) {
 }
 
 Individual crossover(const Individual &parent1, const Individual &parent2,
-        const vector<string> &spectrum, mt19937 &generator) {
+        const vector<string> &even_spectrum, const unordered_set<string> &odd_spectrum, mt19937 &generator) {
 
     static bernoulli_distribution take_best_distribution(0.2);
 
     Individual individual;
     individual.permutation = vector<int>(parent1.permutation.size());
 
-    unordered_set<int> remaining(spectrum.size());
-    for (size_t i = 2; i < spectrum.size(); ++i) {
+    unordered_set<int> remaining(even_spectrum.size());
+    for (size_t i = 2; i < even_spectrum.size(); ++i) {
         remaining.insert(i);
     }
 
     size_t even = 0;
     size_t odd = 1;
-    size_t even_length = spectrum[even].size();
-    size_t odd_length = spectrum[odd].size() + 1;
+    size_t even_length = even_spectrum[even].size();
+    size_t odd_length = even_spectrum[odd].size() + 1;
+    string even_sequence = even_spectrum[0];
+    string odd_sequence = "X";
+    odd_sequence += even_spectrum[1];
 
-    int probe_length = spectrum[0].size();
+    int probe_length = even_spectrum[0].size();
 
     while (remaining.size() > 0) {
         size_t shorter = even_length < odd_length ? even : odd;
+        string &longer_seq = even_length < odd_length ? odd_sequence : even_sequence;
+        size_t shorter_len = min(even_length, odd_length);
+        string odd_oligo = longer_seq.substr(shorter_len + 3 - probe_length, probe_length - 2);
+        odd_oligo += 'X';
         if (take_best_distribution(generator)) {
             // Take the most overlapping oligonucleotide from all the remaining ones
             int best_oligo = 0;
             int best_overlap = -1000000;
             for (int j : remaining) {
-                int overlap = get_overlap(shorter, j, spectrum);
+                int overlap = get_overlap(shorter, j, even_spectrum);
+                if (overlap > best_overlap || (overlap == best_overlap && best_overlap % 2 == 1)) {
+                    odd_oligo.back() = even_spectrum[j][overlap + 1];
+                    if (odd_spectrum.find(odd_oligo) != odd_spectrum.end()) {
+                        ++overlap;
+                    }
+                }
                 if (overlap > best_overlap) {
                     best_overlap = overlap;
                     best_oligo = j;
-                    if (best_overlap + 2 == probe_length) {
+                    if (best_overlap + 1 == probe_length) {
                         break;
                     }
                 }
@@ -292,8 +327,18 @@ Individual crossover(const Individual &parent1, const Individual &parent2,
         }
         else {
             // Choose better oligonucleotide from the parents
-            int overlap1 = get_overlap(shorter, parent1.permutation[shorter], spectrum);
-            int overlap2 = get_overlap(shorter, parent2.permutation[shorter], spectrum);
+            int overlap1 = get_overlap(shorter, parent1.permutation[shorter], even_spectrum);
+            int overlap2 = get_overlap(shorter, parent2.permutation[shorter], even_spectrum);
+            if (overlap1 == overlap2) {
+                odd_oligo.back() = even_spectrum[parent1.permutation[shorter]][overlap1 + 1];
+                if (odd_spectrum.find(odd_oligo) != odd_spectrum.end()) {
+                    ++overlap1;
+                }
+                odd_oligo.back() = even_spectrum[parent2.permutation[shorter]][overlap2 + 1];
+                if (odd_spectrum.find(odd_oligo) != odd_spectrum.end()) {
+                    ++overlap2;
+                }
+            }
             if (overlap1 >= overlap2) {
                 individual.permutation[shorter] = parent1.permutation[shorter];
             }
@@ -301,14 +346,22 @@ Individual crossover(const Individual &parent1, const Individual &parent2,
                 individual.permutation[shorter] = parent2.permutation[shorter];
             }
         }
-        int overlap = get_overlap(shorter, individual.permutation[shorter], spectrum);
+        int overlap = get_overlap(shorter, individual.permutation[shorter], even_spectrum);
         if (shorter == even) {
             even = individual.permutation[shorter];
             even_length += probe_length - overlap;
+            if (overlap < 0) {
+                even_sequence += 'X';
+            }
+            even_sequence += even_spectrum[even].substr(max(0, overlap));
         }
         else {
             odd = individual.permutation[shorter];
             odd_length += probe_length - overlap;
+            if (overlap < 0) {
+                odd_sequence += 'X';
+            }
+            odd_sequence += even_spectrum[odd].substr(max(0, overlap));
         }
         shorter = individual.permutation[shorter];
         remaining.erase(shorter);
