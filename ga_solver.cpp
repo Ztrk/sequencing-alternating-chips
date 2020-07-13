@@ -63,20 +63,23 @@ void GaSolver::print_population() {
 
 string GaSolver::solve() {
     int iterations = 0;
+    int last_improvement = 0;
     auto time_start = chrono::high_resolution_clock::now();
     auto time_limit = chrono::milliseconds(solving_time);
 
     initialize_population(population_size);
     int best_fitness = -1000000000;
 
-    while (chrono::high_resolution_clock::now() - time_start < time_limit) {
+    // while (chrono::high_resolution_clock::now() - time_start < time_limit) {
+    while (iterations - last_improvement <= iterations_without_improvement) {
         vector<Individual> new_population(population_size);
 
         sort(population.begin(), population.end(),
             [](Individual &a, Individual &b) { return a.fitness > b.fitness; });
         if (population[0].fitness > best_fitness) {
             best_fitness = population[0].fitness;
-            cout << iterations << ". Better result: " << population[0].fitness << '\n';
+            last_improvement = iterations;
+            //cout << iterations << ". Better result: " << population[0].fitness << '\n';
         }
 
         for (int i = 0; i < best_taken; ++i) {
@@ -98,10 +101,10 @@ string GaSolver::solve() {
         }
     }
 
-    cout << "Iterations: " << iterations << '\n';
     cout << "Fitness: " << population[best].fitness << '\n';
     int k = even_spectrum[0].size();
     cout << "Max fitness: " << (even_spectrum.size() + odd_spectrum.size()) * k - length << '\n';
+    cout << "Iterations: " << iterations << '\n';
     return population[best].to_sequence(even_spectrum, length).first;
 }
 
@@ -141,6 +144,7 @@ Individual GaSolver::generate_new_indiviudal() {
 }
 
 void Individual::evaluate(const vector<string> &even_spectrum, const unordered_set<string> &odd_spectrum, int expected_length) {
+    unordered_set<string> odd_spectrum_copy = odd_spectrum;
     auto result = to_sequence(even_spectrum, expected_length);
     int k = even_spectrum[0].size();
     int even_oligos = result.second;
@@ -158,8 +162,9 @@ void Individual::evaluate(const vector<string> &even_spectrum, const unordered_s
             }
         }
         oligo += sequence[i + k - 2];
-        if (odd_spectrum.find(oligo) != odd_spectrum.end()) {
+        if (odd_spectrum_copy.find(oligo) != odd_spectrum_copy.end()) {
             ++odd_oligos;
+            odd_spectrum_copy.erase(oligo);
         }
         oligo.erase();
     }
