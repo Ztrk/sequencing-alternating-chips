@@ -25,13 +25,10 @@ public:
 
 Individual greedy_algorithm(const std::vector<std::string> &spectrum, int start);
 
-Individual crossover(const Individual &parent1, const Individual &parent2,
-    const std::vector<std::string> &even_spectrum, 
-    const std::unordered_set<std::string> &odd_spectrum, 
-    std::mt19937 &generator
-);
 
 Individual generate(const std::vector<std::string> &spectrum, std::mt19937 &generator);
+
+void add_oligos(std::vector<std::string> &even_spectrum, const std::vector<std::string> &odd_spectrum);
 
 class GaSolver {
 public:
@@ -59,6 +56,7 @@ private:
 
     void initialize_population(int population_size);
     Individual generate_new_indiviudal();
+    Individual crossover(const Individual &parent1, const Individual &parent2);
 };
 
 #endif

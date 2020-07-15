@@ -48,6 +48,26 @@ GaSolver::GaSolver(const vector<string> &even_spectrum_input,
     }
     even_spectrum.insert(even_spectrum.begin(), even_start);
     even_spectrum.insert(even_spectrum.begin() + 1, odd_start);
+
+    add_oligos(even_spectrum, odd_spectrum);
+}
+
+void add_oligos(std::vector<std::string> &even_spectrum, const std::vector<std::string> &odd_spectrum) {
+    unordered_set<string> parts;
+    size_t part_len = even_spectrum[0].size() - 2;
+    for (string &oligo : even_spectrum) {
+        for (size_t i = 0; i <= oligo.size() - part_len; i += 2) {
+            parts.insert(oligo.substr(i, part_len));
+        }
+    }
+
+    for (const string &oligo : odd_spectrum) {
+        string part = oligo.substr(0, part_len);
+        if (parts.find(part) == parts.end()) {
+            even_spectrum.push_back(part);
+            parts.insert(part);
+        }
+    }
 }
 
 void GaSolver::print_population() {
@@ -129,8 +149,7 @@ Individual GaSolver::generate_new_indiviudal() {
         parent2 = parent_distribution(generator);
     }
 
-    Individual individual = crossover(population[parent1], population[parent2],
-        even_spectrum, odd_spectrum, generator);
+    Individual individual = crossover(population[parent1], population[parent2]);
 
     /*
     if (mutation_distribution(generator)) {
@@ -187,10 +206,10 @@ pair<string, int> Individual::to_sequence(const vector<string> &spectrum, int ex
 
 pair<string, int> Individual::to_sequence(const vector<string> &spectrum, int expected_length, int start) {
     string result = spectrum[start];
-    int probe_length = spectrum[0].size();
     int oligos_used = 1;
     for (size_t i = permutation[start], prev_i = start; i != start; prev_i = i, i = permutation[i]) {
         int result_length = result.size();
+        int probe_length = spectrum[i].size();
         int overlap = get_overlap(prev_i, i, spectrum);
 
         if (result_length + probe_length - overlap <= expected_length) {
@@ -217,9 +236,17 @@ void Individual::mutate(mt19937 &generator) {
 }
 
 void Individual::print(const vector<string> &spectrum) {
-    for (size_t i = permutation[0]; i != 0; i = permutation[i]) {
+    size_t i = 0;
+    do {
         cout << setw(2) << i << ' ' << spectrum[i] << '\n';
-    }
+        i = permutation[i];
+    } while (i != 0);
+    cout << endl;
+    i = 1;
+    do {
+        cout << setw(2) << i << ' ' << spectrum[i] << '\n';
+        i = permutation[i];
+    } while (i != 1);
 }
 
 Individual greedy_algorithm(const vector<string> &spectrum, int start) {
@@ -267,9 +294,7 @@ Individual greedy_algorithm(const vector<string> &spectrum, int start) {
     return result;
 }
 
-Individual crossover(const Individual &parent1, const Individual &parent2,
-        const vector<string> &even_spectrum, const unordered_set<string> &odd_spectrum, mt19937 &generator) {
-
+Individual GaSolver::crossover(const Individual &parent1, const Individual &parent2) {
     static bernoulli_distribution take_best_distribution(0.2);
 
     Individual individual;
@@ -354,19 +379,19 @@ Individual crossover(const Individual &parent1, const Individual &parent2,
         int overlap = get_overlap(shorter, individual.permutation[shorter], even_spectrum);
         if (shorter == even) {
             even = individual.permutation[shorter];
-            even_length += probe_length - overlap;
             if (overlap < 0) {
                 even_sequence += 'X';
             }
             even_sequence += even_spectrum[even].substr(max(0, overlap));
+            even_length = even_sequence.size();
         }
         else {
             odd = individual.permutation[shorter];
-            odd_length += probe_length - overlap;
             if (overlap < 0) {
                 odd_sequence += 'X';
             }
             odd_sequence += even_spectrum[odd].substr(max(0, overlap));
+            odd_length = odd_sequence.size();
         }
         shorter = individual.permutation[shorter];
         remaining.erase(shorter);
