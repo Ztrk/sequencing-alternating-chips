@@ -1,0 +1,31 @@
+<dna key="1840355" length="20" start="ACCTCTC">
+	<probe pattern="NXNXNXN">
+		<cell>AXCXCXC</cell>
+		<cell>AXTXGXC</cell>
+		<cell>CXCXCXT</cell>
+		<cell>CXCXTXT</cell>
+		<cell>CXTXTXC</cell>
+		<cell>GXTXGXG</cell>
+		<cell>TXAXTXG</cell>
+		<cell>TXCXTXG</cell>
+		<cell>TXGXGXA</cell>
+		<cell>TXTXAXT</cell>
+		<cell>TXTXCXT</cell>
+	</probe>
+	<probe pattern="NXNXNN">
+		<cell>AXTXGG</cell>
+		<cell>CXCXCC</cell>
+		<cell>CXCXTT</cell>
+		<cell>CXTXGA</cell>
+		<cell>CXTXTC</cell>
+		<cell>CXTXTG</cell>
+		<cell>GXTXGG</cell>
+		<cell>TXAXTG</cell>
+		<cell>TXCXTT</cell>
+		<cell>TXGXCA</cell>
+		<cell>TXGXGC</cell>
+		<cell>TXGXTT</cell>
+		<cell>TXTXAT</cell>
+		<cell>TXTXCT</cell>
+	</probe>
+</dna>
