@@ -312,27 +312,29 @@ Individual GaSolver::crossover(const Individual &parent1, const Individual &pare
     int probe_length = even_spectrum[0].size();
 
     while (remaining.size() > 0) {
+        const int confirmation_value = 5;
         size_t shorter = even_length < odd_length ? even : odd;
         string &longer_seq = even_length < odd_length ? odd_sequence : even_sequence;
         size_t shorter_len = min(even_length, odd_length);
         string odd_oligo = longer_seq.substr(shorter_len + 3 - probe_length, probe_length - 2);
         odd_oligo += 'X';
+
         if (take_best_distribution(generator)) {
             // Take the most overlapping oligonucleotide from all the remaining ones
             int best_oligo = 0;
             int best_overlap = -1000000;
             for (int j : remaining) {
                 int overlap = get_overlap(shorter, j, even_spectrum);
-                if (overlap > best_overlap || (overlap == best_overlap && best_overlap % 2 == 1)) {
+                if (overlap + confirmation_value > best_overlap) {
                     odd_oligo.back() = even_spectrum[j][overlap + 1];
                     if (odd_spectrum.find(odd_oligo) != odd_spectrum.end()) {
-                        ++overlap;
+                        overlap += confirmation_value;
                     }
                 }
                 if (overlap > best_overlap) {
                     best_overlap = overlap;
                     best_oligo = j;
-                    if (best_overlap + 1 == probe_length) {
+                    if (best_overlap == probe_length - 2 + confirmation_value) {
                         break;
                     }
                 }
@@ -355,15 +357,13 @@ Individual GaSolver::crossover(const Individual &parent1, const Individual &pare
             // Choose better oligonucleotide from the parents
             int overlap1 = get_overlap(shorter, parent1.permutation[shorter], even_spectrum);
             int overlap2 = get_overlap(shorter, parent2.permutation[shorter], even_spectrum);
-            if (overlap1 == overlap2) {
-                odd_oligo.back() = even_spectrum[parent1.permutation[shorter]][overlap1 + 1];
-                if (odd_spectrum.find(odd_oligo) != odd_spectrum.end()) {
-                    ++overlap1;
-                }
-                odd_oligo.back() = even_spectrum[parent2.permutation[shorter]][overlap2 + 1];
-                if (odd_spectrum.find(odd_oligo) != odd_spectrum.end()) {
-                    ++overlap2;
-                }
+            odd_oligo.back() = even_spectrum[parent1.permutation[shorter]][overlap1 + 1];
+            if (odd_spectrum.find(odd_oligo) != odd_spectrum.end()) {
+                ++overlap1;
+            }
+            odd_oligo.back() = even_spectrum[parent2.permutation[shorter]][overlap2 + 1];
+            if (odd_spectrum.find(odd_oligo) != odd_spectrum.end()) {
+                ++overlap2;
             }
             if (overlap1 >= overlap2) {
                 individual.permutation[shorter] = parent1.permutation[shorter];

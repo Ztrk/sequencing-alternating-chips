@@ -68,6 +68,7 @@ def check(instance, sequence):
     print_fraction(' Odd:', odd_oligos, odd_oligos_num)
     print_fraction(' All:', all_oligos, all_oligos_num)
     print()
+    return (all_oligos/all_oligos_num * 100, 100)
 
 def print_fraction(header, numerator, denominator):
     print('{} {}/{} {}'.format(header, numerator, denominator, 
@@ -83,6 +84,7 @@ files = listdir(instances_dir)
 files.sort(key=file_key)
 
 xml_reader = xml.sax.make_parser()
+cumulative = [0, 0]
 for file_path in files:
     handler = InstanceHandler()
     xml_reader.setContentHandler(handler)
@@ -94,5 +96,9 @@ for file_path in files:
 
     print(file_path)
     print(process.stdout.split('\n')[-3])
-    check(handler, process.stdout.split('\n')[-2])
+    result = check(handler, process.stdout.split('\n')[-2])
+    cumulative[0] += result[0]
+    cumulative[1] += result[1]
     print('')
+print_fraction('Sum:', *cumulative)
+print()
