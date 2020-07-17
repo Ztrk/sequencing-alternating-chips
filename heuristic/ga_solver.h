@@ -4,27 +4,11 @@
 #include <string>
 #include <random>
 #include <unordered_set>
+#include <utility>
 #include <vector>
+#include "individual.h"
 
-int get_overlap(const std::string &a, const std::string &b);
-int get_overlap(int a, int b, const std::vector<std::string> &spectrum);
-
-class Individual {
-private:
-    std::pair<std::string, int> to_sequence_util(const std::vector<std::string> &spectrum, int expected_length, int start);
-public:
-    std::vector<int> permutation;
-    int fitness;
-
-    void evaluate(const std::vector<std::string> &even_spectrum, const std::unordered_set<std::string> &odd_spectrum, int expected_length);
-
-    std::pair<std::string, int> to_sequence(const std::vector<std::string> &spectrum, int expected_length);
-    void mutate(std::mt19937 &generator);
-    void print(const std::vector<std::string> &spectrum);
-};
-
-Individual greedy_algorithm(const std::vector<std::string> &spectrum, int start);
-
+Individual greedy_algorithm(const std::vector<std::string> &even_spectrum, const std::unordered_set<std::string> &odd_spectrum);
 
 Individual generate(const std::vector<std::string> &spectrum, std::mt19937 &generator);
 
@@ -57,6 +41,8 @@ private:
     void initialize_population(int population_size);
     Individual generate_new_indiviudal();
     Individual crossover(const Individual &parent1, const Individual &parent2);
+
+    bool is_in_second_set(std::string &confirmation_oligo, std::string &oligo, int overlap);
 };
 
 #endif

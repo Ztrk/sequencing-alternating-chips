@@ -19,9 +19,5 @@ int main() {
     GaSolver solver(even, odd, start, length);
     cout << solver.solve() << endl;
 
-    //Individual greedy_individual = greedy_algorithm(oligonucleotides, 0);
-    //cout << greedy_individual.to_sequence(oligonucleotides, length).first << endl;
-
-
     return 0;
 }
