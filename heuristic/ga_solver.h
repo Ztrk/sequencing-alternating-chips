@@ -11,7 +11,7 @@ int get_overlap(int a, int b, const std::vector<std::string> &spectrum);
 
 class Individual {
 private:
-    std::pair<std::string, int> to_sequence(const std::vector<std::string> &spectrum, int expected_length, int start);
+    std::pair<std::string, int> to_sequence_util(const std::vector<std::string> &spectrum, int expected_length, int start);
 public:
     std::vector<int> permutation;
     int fitness;
