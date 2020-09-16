@@ -15,8 +15,8 @@ public:
 
 private:
     const int population_size = 50;
-    const int best_taken = 15;
-    const int mutation_chance = 0.2;
+    //const int best_taken = 15;
+    //const int mutation_chance = 0.2;
     const int iterations_without_improvement = 100;
     const int solving_time = 4000;
 
