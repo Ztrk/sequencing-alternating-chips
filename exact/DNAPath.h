@@ -11,6 +11,7 @@ public:
 private:
     std::string path;
 
+public:
     void addElement(std::string newElement);
     int getLength();
     std::string getLastElement(int elementLength);
