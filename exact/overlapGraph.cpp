@@ -1,6 +1,7 @@
 #include <iostream>
 #include "overlapGraph.h"
 
+//constructor
 OverlapGraph::OverlapGraph(std::vector <std::string> evenSpectrum)
 {
     //calculate even element length
@@ -55,11 +56,13 @@ OverlapGraph::OverlapGraph(std::vector <std::string> evenSpectrum)
     }
 }
 
+//constructor
 OverlapGraph::OverlapGraph()
 {
 
 }
 
+//return overlap between two given elements
 int OverlapGraph::get_overlap(const std::string &a, const std::string &b) {
     for (size_t overlap = b.size() - 1; overlap > 0; --overlap) {
         bool equal = true;
@@ -76,6 +79,7 @@ int OverlapGraph::get_overlap(const std::string &a, const std::string &b) {
     return 0;
 }
 
+//print the graph
 void OverlapGraph::print()
 {
     for (std::vector <int> row : graph)
@@ -86,4 +90,33 @@ void OverlapGraph::print()
         }
         printf("\n");
     }
+}
+
+//return all vertices to which beginningVertex
+//has an outgoing edge
+std::vector <int> OverlapGraph::getOutgoingVertices(int beginningVertexID)
+{
+    //vector with the answer
+    std::vector <int> outgoingVertices;
+
+    //for each vertex
+    for (int vertexID = 0; vertexID < graph.size(); vertexID++)
+    {
+        //continue if it's beginningVertex
+        if(vertexID == beginningVertexID)
+        {
+            continue;
+        }
+
+        //vertices edge cost
+        int edgeCost = graph[beginningVertexID][vertexID];
+
+        //if these vertices overlap add vertex to outgoingVertices
+        if (edgeCost != 0)
+        {
+            outgoingVertices.push_back(vertexID);
+        }
+    }
+
+    return outgoingVertices;
 }

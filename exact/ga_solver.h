@@ -39,6 +39,9 @@ private:
     int evenNegativeErrorsCount;
     int oddNegativeErrorsCount;
 
+    //solution elements count
+    int solutionElementsCount;
+
     //overlap between elements graph
     OverlapGraph* overlapGraph;
 

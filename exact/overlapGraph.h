@@ -12,11 +12,11 @@ public:
 private:
     std::vector <std::vector <int> > graph; 
 
-private:
     int get_overlap(const std::string &a, const std::string &b);
 
 public:
     void print();
+    std::vector <int> getOutgoingVertices(int beginningVertexID);
 };
 
 #endif

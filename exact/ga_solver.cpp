@@ -5,6 +5,8 @@
 
 #define NOTAVAILABLE 0
 #define AVAILABLE 1
+#define EVEN 0
+#define ODD 1
 
 GaSolver::GaSolver(const std::vector<std::string> &even_spectrum_input, 
     const std::vector<std::string> &odd_spectrum, 
@@ -44,6 +46,9 @@ GaSolver::GaSolver(const std::vector<std::string> &even_spectrum_input,
     evenNegativeErrorsCount = perfectSpectrumEvenCount - (even_spectrum.size() - 1);
     oddNegativeErrorsCount = perfectSpectrumOddCount - odd_spectrum.size();
 
+    //calculate solution elements count
+    int solutionElementsCount = perfectSpectrumEvenCount - evenNegativeErrorsCount;
+
     //create overlap between elements graph
     overlapGraph = new OverlapGraph(even_spectrum);
 
@@ -63,8 +68,8 @@ GaSolver::GaSolver(const std::vector<std::string> &even_spectrum_input,
 std::string GaSolver::solve()
 {
     //create even and odd paths starting with given elements
-    DNAPath evenPath(evenStart);
-    DNAPath oddPath(oddStart);
+    DNAPath evenPath(evenStart, 0);
+    DNAPath oddPath(oddStart, 1);
 
     //create vertices availability vector
     std::vector <bool> verticesAvailability(even_spectrum.size(), AVAILABLE);
@@ -78,21 +83,61 @@ std::string GaSolver::solve()
     return "abc";
 }
 
+//go throu all possible combinations (break if stop condition detected)
+//push all found solutions to solutions vector
+//add new elements to evenPath and oddPath
+//pass new paths as the arguments to the next recursion
 void GaSolver::solveRecursion(DNAPath evenPath, DNAPath oddPath, 
         std::vector <bool> verticesAvailability)
 {
-    //main loop
-    //break if we reviewed all solutions space
-    //or if execution time exceeded the limit
-    //or if found solutions count is equal to solutions limit
-    //or if rejected iterations count exceeded the limit
-    //for (;
-    //    timeLimit < std::chrono::duration_cast <std::chrono::seconds> (duration).count() ||
-    //    solutionsCount == solutionsLimit ||
-    //    iterationsLimit < rejectedItereationsCount
-    //    ; 
-    //    duration = std::chrono::high_resolution_clock::now() - start)
-   // {
-    //    
-   // }
+    //if dna paths contain enough elements
+    if (evenPath.getElementsCount() + oddPath.getElementsCount() == solutionElementsCount)
+    {
+        //create solution
+        std::string newSolution;
+
+        //test solution
+
+        //add solution to solutions vector
+        solutions.push_back(newSolution);
+    }
+
+    //calculate alhorithm work duration
+    auto duration = std::chrono::high_resolution_clock::now() - startTime;
+    //if execution time exceeded the limit stop algorithm
+    if (timeLimit < std::chrono::duration_cast <std::chrono::seconds> (duration).count())
+    {
+        return;
+    }
+
+    //if found solutions count is equal to solutions limit stop algorithm
+    if (solutions.size() == solutionsLimit)
+    {
+        return;
+    }
+
+    //if rejected iterations count exceeded the limit stop algorithm
+    if (iterationsLimit < rejectedItereationsCount)
+    {
+        return;
+    }
+
+    //we will try to add new element to shorter path
+    int shorterPath;
+
+    //all elements overlaping with last element from shorter path
+    std::vector <int> candidates;
+
+    //find shorter path
+    if (evenPath.getLength() < oddPath.getLength())
+    {
+        shorterPath = EVEN;
+        candidates = overlapGraph->getOutgoingVertices(evenPath.lastElementID);
+    }
+    else if (oddPath.getLength() < evenPath.getLength())
+    {
+        shorterPath = ODD;
+        candidates = overlapGraph->getOutgoingVertices(oddPath.lastElementID);
+    }
+
 }

@@ -6,15 +6,20 @@
 
 class DNAPath {
 public:
-    DNAPath(std::string startingElement);
+    DNAPath(std::string startingElement, int startingElementID);
 
 private:
     std::string path;
+    int elementLength;
+    bool isEven;
 
 public:
+    int lastElementID;
+
     void addElement(std::string newElement);
+    std::string getLastElement();
     int getLength();
-    std::string getLastElement(int elementLength);
+    int getElementsCount();
 };
 
 #endif
