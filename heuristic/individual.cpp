@@ -1,3 +1,5 @@
+#include <iostream>
+#include <iomanip>
 #include "individual.h"
 using namespace std;
 
@@ -77,10 +79,7 @@ pair<string, int> Individual::to_sequence_util(const vector<string> &spectrum, i
         int overlap = max(get_overlap(prev_i, i, spectrum), 0);
 
         if (result.size() <= expected_length) {
-            if (overlap == 0) {
-                result += 'X';
-            }
-            result += spectrum[i].substr(overlap);
+            extend_sequence(result, spectrum[i], overlap);
         }
         overlap_sum += overlap;
     }
@@ -93,6 +92,20 @@ void Individual::mutate(mt19937 &generator) {
     //uniform_int_distribution<> distribution(0, permutation.size() - 1);
     //int index1 = distribution(generator), index2 = distribution(generator);
     //swap(permutation[index1], permutation[index2]);
+}
+
+void Individual::print(const vector<string> &spectrum) {
+    size_t i = 0;
+    do {
+        cout << setw(2) << i << ' ' << spectrum[i] << '\n';
+        i = permutation[i];
+    } while (i != 0);
+    cout << endl;
+    i = 1;
+    do {
+        cout << setw(2) << i << ' ' << spectrum[i] << '\n';
+        i = permutation[i];
+    } while (i != 1);
 }
 
 IndividualIterator Individual::get_iterator(int start) {
@@ -109,4 +122,15 @@ int IndividualIterator::next() {
 
 void IndividualIterator::append(int oligo) {
     individual.permutation[i] = oligo;
+}
+
+/*
+    Extend given sequence with oligo, ignoring overlapped characters.
+    Add 'X' character if overlap is 0 or less.
+*/
+void extend_sequence(string &sequence, const string &oligo, int overlap) {
+    if (overlap <= 0) {
+        sequence += 'X';
+    }
+    sequence += oligo.substr(max(0, overlap));
 }

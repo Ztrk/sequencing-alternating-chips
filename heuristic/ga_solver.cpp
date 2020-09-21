@@ -71,6 +71,7 @@ string GaSolver::solve() {
 
         sort(population.begin(), population.end(),
             [](Individual &a, Individual &b) { return a.fitness > b.fitness; });
+
         if (population[0].fitness > best_fitness) {
             best_fitness = population[0].fitness;
             last_improvement = iterations;
@@ -138,20 +139,6 @@ Individual GaSolver::generate_new_indiviudal() {
     return individual;
 }
 
-void Individual::print(const vector<string> &spectrum) {
-    size_t i = 0;
-    do {
-        cout << setw(2) << i << ' ' << spectrum[i] << '\n';
-        i = permutation[i];
-    } while (i != 0);
-    cout << endl;
-    i = 1;
-    do {
-        cout << setw(2) << i << ' ' << spectrum[i] << '\n';
-        i = permutation[i];
-    } while (i != 1);
-}
-
 Individual GaSolver::crossover(const Individual &parent1, const Individual &parent2) {
     static bernoulli_distribution take_best_distribution(0.2);
 
@@ -163,10 +150,7 @@ Individual GaSolver::crossover(const Individual &parent1, const Individual &pare
         remaining.insert(i);
     }
 
-    size_t even = 0;
-    size_t odd = 1;
-    size_t even_length = even_spectrum[even].size();
-    size_t odd_length = even_spectrum[odd].size() + 1;
+    IndividualIterator even = individual.get_iterator(0), odd = individual.get_iterator(1);
     string even_sequence = even_spectrum[0];
     string odd_sequence = "X";
     odd_sequence += even_spectrum[1];
@@ -174,86 +158,106 @@ Individual GaSolver::crossover(const Individual &parent1, const Individual &pare
     int probe_length = even_spectrum[0].size();
 
     while (remaining.size() > 0) {
-        const int confirmation_value = 5;
-        size_t shorter = even_length < odd_length ? even : odd;
-        string &longer_seq = even_length < odd_length ? odd_sequence : even_sequence;
-        size_t shorter_len = min(even_length, odd_length);
+        IndividualIterator &shorter = even_sequence.size() < odd_sequence.size() ? even : odd;
+        int previous = shorter.current();
+
+        string &longer_seq = even_sequence.size() < odd_sequence.size() ? odd_sequence : even_sequence;
+        size_t shorter_len = min(even_sequence.size(), odd_sequence.size());
         string odd_oligo = longer_seq.substr(shorter_len + 3 - probe_length, probe_length - 2);
         odd_oligo += 'X';
 
+        int next;
         if (take_best_distribution(generator)) {
-            // Take the most overlapping oligonucleotide from all the remaining ones
-            int best_oligo = 0;
-            int best_overlap = -1000000;
-            for (int j : remaining) {
-                int overlap = get_overlap(shorter, j, even_spectrum);
-                if (overlap + confirmation_value > best_overlap
-                        && is_in_second_set(odd_oligo, even_spectrum[j], overlap)) {
-                    overlap += confirmation_value;
-                }
-                if (overlap > best_overlap) {
-                    best_overlap = overlap;
-                    best_oligo = j;
-                    if (best_overlap == probe_length - 2 + confirmation_value) {
-                        break;
-                    }
-                }
-            }
-            individual.permutation[shorter] = best_oligo;
+            next = choose_best(previous, odd_oligo, remaining);
         }
-        else if (remaining.find(parent1.permutation[shorter]) == remaining.end()
-                || remaining.find(parent2.permutation[shorter]) == remaining.end()) {
-            // Take random oligo when one of parent ones is used
-            uniform_int_distribution<> random_index_distribution(0, remaining.size() - 1);
-            int index = random_index_distribution(generator);
+        else if (remaining.find(parent1.permutation[previous]) == remaining.end()
+                || remaining.find(parent2.permutation[previous]) == remaining.end()) {
+            next = choose_random(remaining);
+        }
+        else {
+            next = choose_between_two(previous, parent1.permutation[previous], 
+                parent2.permutation[previous], odd_oligo);
+        }
+        shorter.append(next);
+        shorter.next();
 
-            auto it = remaining.begin();
-            for (int i = 0; i < index; ++i) {
-                ++it;
-            }
-            individual.permutation[shorter] = *it;
+        int overlap = get_overlap(previous, next, even_spectrum);
+        if (next == even.current()) {
+            extend_sequence(even_sequence, even_spectrum[even.current()], overlap);
         }
         else {
-            // Choose better oligonucleotide from the parents
-            int overlap1 = get_overlap(shorter, parent1.permutation[shorter], even_spectrum);
-            int overlap2 = get_overlap(shorter, parent2.permutation[shorter], even_spectrum);
-            if (is_in_second_set(odd_oligo, even_spectrum[parent1.permutation[shorter]], overlap1)) {
-                overlap1 += 1;
-            }
-            if (is_in_second_set(odd_oligo, even_spectrum[parent2.permutation[shorter]], overlap2)) {
-                overlap2 += 1;
-            }
-            if (overlap1 >= overlap2) {
-                individual.permutation[shorter] = parent1.permutation[shorter];
-            }
-            else {
-                individual.permutation[shorter] = parent2.permutation[shorter];
-            }
+            extend_sequence(odd_sequence, even_spectrum[odd.current()], overlap);
         }
-        int overlap = get_overlap(shorter, individual.permutation[shorter], even_spectrum);
-        if (shorter == even) {
-            even = individual.permutation[shorter];
-            if (overlap < 0) {
-                even_sequence += 'X';
-            }
-            even_sequence += even_spectrum[even].substr(max(0, overlap));
-            even_length = even_sequence.size();
-        }
-        else {
-            odd = individual.permutation[shorter];
-            if (overlap < 0) {
-                odd_sequence += 'X';
-            }
-            odd_sequence += even_spectrum[odd].substr(max(0, overlap));
-            odd_length = odd_sequence.size();
-        }
-        shorter = individual.permutation[shorter];
-        remaining.erase(shorter);
+        remaining.erase(next);
     }
-    individual.permutation[even] = 0;
-    individual.permutation[odd] = 1;
+    even.append(0);
+    odd.append(1);
 
     return individual;
+}
+
+/*
+    Choose oligonoucleotide from the given set such that it has the greatest "value".
+    Value is the sum of:
+        - length of overlap with the previous oligo
+        - confirmation value, added when the end of odd sequence confirms choice of oligo
+    Returns index of chosen oligo.
+*/
+int GaSolver::choose_best(int previous, string &odd_oligo, const unordered_set<int> &oligos) {
+    const int confirmation_value = 5;
+    int probe_length = even_spectrum[0].size();
+
+    int best_oligo = 0;
+    int best_overlap = -1000000;
+    for (int j : oligos) {
+        int overlap = get_overlap(previous, j, even_spectrum);
+        if (overlap + confirmation_value > best_overlap
+                && is_in_second_set(odd_oligo, even_spectrum[j], overlap)) {
+            overlap += confirmation_value;
+        }
+        if (overlap > best_overlap) {
+            best_overlap = overlap;
+            best_oligo = j;
+            if (best_overlap == probe_length - 2 + confirmation_value) {
+                break;
+            }
+        }
+    }
+    return best_oligo;
+}
+
+/*
+    Return random oligo from the given set.
+*/
+int GaSolver::choose_random(const unordered_set<int> &oligos) {
+    uniform_int_distribution<> random_index_distribution(0, oligos.size() - 1);
+    int index = random_index_distribution(generator);
+
+    auto it = oligos.begin();
+    for (int i = 0; i < index; ++i) {
+        ++it;
+    }
+    return *it;
+}
+
+/*
+    Return more overlapping oligo from the pair.
+    If overlap is the same choose oligo that is in confirmation set.
+    If that does not decide, return the first one.
+*/
+int GaSolver::choose_between_two(int previous, int first, int second, string &odd_oligo) {
+    int overlap1 = get_overlap(previous, first, even_spectrum);
+    int overlap2 = get_overlap(previous, second, even_spectrum);
+    if (is_in_second_set(odd_oligo, even_spectrum[first], overlap1)) {
+        overlap1 += 1;
+    }
+    if (is_in_second_set(odd_oligo, even_spectrum[second], overlap2)) {
+        overlap2 += 1;
+    }
+    if (overlap1 >= overlap2) {
+        return first;
+    }
+    return second;
 }
 
 Individual greedy_algorithm(const vector<string> &even_spectrum, const unordered_set<string> &odd_spectrum) {
@@ -333,7 +337,7 @@ Individual generate(const vector<string> &spectrum, mt19937 &generator) {
     return individual;
 }
 
-bool GaSolver::is_in_second_set(string &confirmation_oligo, string &oligo, int overlap) {
+bool GaSolver::is_in_second_set(string &confirmation_oligo, const string &oligo, int overlap) {
     confirmation_oligo.back() = oligo[overlap + 1];
     if (odd_spectrum.find(confirmation_oligo) != odd_spectrum.end()) {
         return true;

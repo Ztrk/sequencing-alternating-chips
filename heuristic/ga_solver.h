@@ -42,7 +42,10 @@ private:
     Individual generate_new_indiviudal();
     Individual crossover(const Individual &parent1, const Individual &parent2);
 
-    bool is_in_second_set(std::string &confirmation_oligo, std::string &oligo, int overlap);
+    int choose_best(int previous, std::string &odd_oligo, const std::unordered_set<int> &oligos);
+    int choose_random(const std::unordered_set<int> &oligos);
+    int choose_between_two(int previous, int first, int second, std::string &odd_oligo);
+    bool is_in_second_set(std::string &confirmation_oligo, const std::string &oligo, int overlap);
 };
 
 #endif

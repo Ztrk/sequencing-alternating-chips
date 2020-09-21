@@ -1,3 +1,4 @@
+#include <chrono>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -16,8 +17,15 @@ int main() {
     vector<string> even = reader.get_even_oligonucleotides();
     vector<string> odd = reader.get_odd_oligonucleotides();
 
+    auto time_start = chrono::high_resolution_clock::now();
+
     GaSolver solver(even, odd, start, length);
-    cout << solver.solve() << endl;
+    string result = solver.solve();
+
+    auto elapsed = chrono::high_resolution_clock::now() - time_start;
+
+    cout << "Elapsed: " << chrono::duration_cast<chrono::milliseconds>(elapsed).count() << " ms" << endl;
+    cout << result << endl;
 
     return 0;
 }

@@ -42,4 +42,6 @@ protected:
     Individual &individual;
 };
 
+void extend_sequence(std::string &sequence, const std::string &oligo, int overlap);
+
 #endif

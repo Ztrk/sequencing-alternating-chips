@@ -85,7 +85,7 @@ files.sort(key=file_key)
 
 xml_reader = xml.sax.make_parser()
 cumulative = [0, 0]
-for file_path in files:
+for i, file_path in enumerate(files):
     handler = InstanceHandler()
     xml_reader.setContentHandler(handler)
     xml_reader.parse(instances_dir + file_path)
@@ -94,7 +94,10 @@ for file_path in files:
     process = subprocess.run([solution_command], stdin=file, text=True,
         capture_output=True, check=True)
 
-    print(file_path)
+    print('{:02}. {}'.format(i + 1, file_path))
+    # Iterations
+    print(process.stdout.split('\n')[-4])
+    # Elapsed time
     print(process.stdout.split('\n')[-3])
     result = check(handler, process.stdout.split('\n')[-2])
     cumulative[0] += result[0]
