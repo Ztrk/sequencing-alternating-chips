@@ -260,7 +260,36 @@ int GaSolver::choose_between_two(int previous, int first, int second, string &od
     return second;
 }
 
-Individual greedy_algorithm(const vector<string> &even_spectrum, const unordered_set<string> &odd_spectrum) {
+int GaSolver::choose_look_ahead(int previous, const unordered_set<int> &oligos) {
+    int probe_length = even_spectrum[0].size();
+    int best_overlap = -1e9;
+    int best_oligo = -1;
+
+    for (int oligo1 : oligos) {
+        int overlap1 = get_overlap(previous, oligo1, even_spectrum);
+        if (overlap1 + probe_length - 2 <= best_overlap) {
+            continue;
+        }
+        for (int oligo2 : oligos) {
+            if (oligo1 != oligo2) {
+                int overlap2 = get_overlap(oligo1, oligo2, even_spectrum);
+                if (overlap1 + overlap2 > best_overlap) {
+                    best_overlap = overlap1 + overlap2;
+                    best_oligo = oligo1;
+                    if (overlap2 == probe_length - 2) {
+                        break;
+                    }
+                }
+            }
+        }
+        if (best_overlap == 2 * probe_length - 4) {
+            break;
+        }
+    }
+    return best_oligo;
+}
+
+Individual GaSolver::greedy_algorithm(const vector<string> &even_spectrum, const unordered_set<string> &odd_spectrum) {
     Individual result;
     result.permutation = vector<int>(even_spectrum.size());
     unordered_set<int> remaining;
@@ -276,41 +305,20 @@ Individual greedy_algorithm(const vector<string> &even_spectrum, const unordered
     while (remaining.size() > 0) {
         IndividualIterator &shorter = even_length < odd_length ? even : odd;
 
-        int best_oligo = -1;
-        int best_overlap = -1000000000;
-        int overlap1;
-        for (int oligo1 : remaining) {
-            overlap1 = get_overlap(shorter.current(), oligo1, even_spectrum);
-            if (overlap1 + probe_length - 2 <= best_overlap) {
-                continue;
-            }
-            for (int oligo2 : remaining) {
-                if (oligo1 != oligo2) {
-                    int overlap2 = get_overlap(oligo1, oligo2, even_spectrum);
-                    if (overlap1 + overlap2 > best_overlap) {
-                        best_overlap = overlap1 + overlap2;
-                        best_oligo = oligo1;
-                        if (overlap2 == probe_length - 2) {
-                            break;
-                        }
-                    }
-                }
-            }
-            if (best_overlap == 2 * probe_length - 4) {
-                break;
-            }
-        }
+        int best_oligo = choose_look_ahead(shorter.current(), remaining);
+        int overlap = get_overlap(shorter.current(), best_oligo, even_spectrum);
         
         if (best_oligo < 0) {
             best_oligo = *remaining.begin();
         }
         remaining.erase(best_oligo);
         shorter.append(best_oligo);
+
         if (shorter.current() == even.current()) {
-            even_length += even_spectrum[best_oligo].size() - overlap1;
+            even_length += even_spectrum[best_oligo].size() - overlap;
         }
         else {
-            odd_length += even_spectrum[best_oligo].size() - overlap1;
+            odd_length += even_spectrum[best_oligo].size() - overlap;
         }
         shorter.next();
     }

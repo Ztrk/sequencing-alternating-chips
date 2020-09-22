@@ -8,7 +8,6 @@
 #include <vector>
 #include "individual.h"
 
-Individual greedy_algorithm(const std::vector<std::string> &even_spectrum, const std::unordered_set<std::string> &odd_spectrum);
 
 Individual generate(const std::vector<std::string> &spectrum, std::mt19937 &generator);
 
@@ -41,10 +40,13 @@ private:
     void initialize_population(int population_size);
     Individual generate_new_indiviudal();
     Individual crossover(const Individual &parent1, const Individual &parent2);
+    Individual greedy_algorithm(const std::vector<std::string> &even_spectrum, const std::unordered_set<std::string> &odd_spectrum);
 
     int choose_best(int previous, std::string &odd_oligo, const std::unordered_set<int> &oligos);
     int choose_random(const std::unordered_set<int> &oligos);
     int choose_between_two(int previous, int first, int second, std::string &odd_oligo);
+    int choose_look_ahead(int previous, const std::unordered_set<int> &oligos);
+
     bool is_in_second_set(std::string &confirmation_oligo, const std::string &oligo, int overlap);
 };
 
