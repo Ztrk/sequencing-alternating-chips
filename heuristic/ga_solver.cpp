@@ -59,7 +59,7 @@ void GaSolver::print_population() {
 string GaSolver::solve() {
     int iterations = 0;
     int last_improvement = 0;
-    auto time_start = chrono::high_resolution_clock::now();
+    // auto time_start = chrono::high_resolution_clock::now();
     auto time_limit = chrono::milliseconds(solving_time);
 
     initialize_population(population_size);
@@ -114,7 +114,7 @@ void GaSolver::initialize_population(int population_size) {
     greedy_individual.evaluate(even_spectrum, odd_spectrum, length);
     population.push_back(greedy_individual);
 
-    // Individuals from partialy random greedy
+    // Individuals from partially random greedy
     for (int i = 1; i < greedy_individuals; ++i) {
         Individual new_individual = greedy_algorithm(even_spectrum, odd_spectrum, greedy_prob);
         new_individual.evaluate(even_spectrum, odd_spectrum, length);
@@ -141,11 +141,9 @@ Individual GaSolver::generate_new_indiviudal() {
 
     Individual individual = crossover(population[parent1], population[parent2]);
 
-    /*
     if (mutation_distribution(generator)) {
         individual.mutate(generator);
     }
-    */
 
     individual.evaluate(even_spectrum, odd_spectrum, length);
 
@@ -312,7 +310,6 @@ Individual GaSolver::greedy_algorithm(const vector<string> &even_spectrum, const
         remaining.insert(i);
     }
 
-    int probe_length = even_spectrum[0].size();
     IndividualIterator even = result.get_iterator(0), odd = result.get_iterator(1);
 
     size_t even_length = even_spectrum[even.current()].size();
