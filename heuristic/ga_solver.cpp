@@ -110,13 +110,13 @@ void GaSolver::initialize_population(int population_size) {
     const int greedy_individuals = 7;
 
     // Initialize with one individual from non-random greedy algorithm
-    Individual greedy_individual = greedy_algorithm(even_spectrum, odd_spectrum);
+    Individual greedy_individual = greedy_algorithm();
     greedy_individual.evaluate(even_spectrum, odd_spectrum, length);
     population.push_back(greedy_individual);
 
     // Individuals from partially random greedy
     for (int i = 1; i < greedy_individuals; ++i) {
-        Individual new_individual = greedy_algorithm(even_spectrum, odd_spectrum, greedy_prob);
+        Individual new_individual = greedy_algorithm(greedy_prob);
         new_individual.evaluate(even_spectrum, odd_spectrum, length);
         population.push_back(new_individual);
     }
@@ -271,13 +271,17 @@ int GaSolver::choose_between_two(int previous, int first, int second, string &od
     return second;
 }
 
-int GaSolver::choose_look_ahead(int previous, const unordered_set<int> &oligos) {
+int GaSolver::choose_look_ahead(int previous, string &odd_oligo, const unordered_set<int> &oligos) {
+    const int confirmation_value = 5;
     int probe_length = even_spectrum[0].size();
     int best_overlap = -1e9;
     int best_oligo = -1;
 
     for (int oligo1 : oligos) {
         int overlap1 = get_overlap(previous, oligo1, even_spectrum);
+        if (is_in_second_set(odd_oligo, even_spectrum[oligo1], overlap1)) {
+            overlap1 += confirmation_value;
+        }
         if (overlap1 + probe_length - 2 <= best_overlap) {
             continue;
         }
@@ -293,14 +297,14 @@ int GaSolver::choose_look_ahead(int previous, const unordered_set<int> &oligos) 
                 }
             }
         }
-        if (best_overlap == 2 * probe_length - 4) {
+        if (best_overlap == 2 * probe_length - 4 + confirmation_value) {
             break;
         }
     }
     return best_oligo;
 }
 
-Individual GaSolver::greedy_algorithm(const vector<string> &even_spectrum, const unordered_set<string> &odd_spectrum, double random_probability) {
+Individual GaSolver::greedy_algorithm(double random_probability) {
     static bernoulli_distribution take_random_distribution(random_probability);
 
     Individual result;
@@ -311,18 +315,25 @@ Individual GaSolver::greedy_algorithm(const vector<string> &even_spectrum, const
     }
 
     IndividualIterator even = result.get_iterator(0), odd = result.get_iterator(1);
+    string even_sequence = even_spectrum[0];
+    string odd_sequence = "X";
+    odd_sequence += even_spectrum[1];
+    int probe_length = even_spectrum[0].size();
 
-    size_t even_length = even_spectrum[even.current()].size();
-    size_t odd_length = even_spectrum[odd.current()].size() + 1;
     while (remaining.size() > 0) {
-        IndividualIterator &shorter = even_length < odd_length ? even : odd;
+        IndividualIterator &shorter = even_sequence.size() < odd_sequence.size() ? even : odd;
+
+        string &longer_seq = even_sequence.size() < odd_sequence.size() ? odd_sequence : even_sequence;
+        size_t shorter_len = min(even_sequence.size(), odd_sequence.size());
+        string odd_oligo = longer_seq.substr(shorter_len + 3 - probe_length, probe_length - 2);
+        odd_oligo += 'X';
 
         int next = -1;
         if (take_random_distribution(generator)) {
             next = choose_random(remaining);
         }
         else {
-            next = choose_look_ahead(shorter.current(), remaining);
+            next = choose_look_ahead(shorter.current(), odd_oligo, remaining);
         }
         int overlap = get_overlap(shorter.current(), next, even_spectrum);
         
@@ -333,10 +344,10 @@ Individual GaSolver::greedy_algorithm(const vector<string> &even_spectrum, const
         shorter.append(next);
 
         if (shorter.current() == even.current()) {
-            even_length += even_spectrum[next].size() - overlap;
+            extend_sequence(even_sequence, even_spectrum[next], overlap);
         }
         else {
-            odd_length += even_spectrum[next].size() - overlap;
+            extend_sequence(odd_sequence, even_spectrum[next], overlap);
         }
         shorter.next();
     }
