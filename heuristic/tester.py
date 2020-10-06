@@ -1,8 +1,10 @@
 from os import listdir
 import xml.sax
+import sys
 import subprocess
+from generator import add_x, generate
 
-instances_dir = 'instances/'
+instances_dir = 'pygen_instances/'
 solution_command = 'build/main'
 
 class InstanceHandler(xml.sax.ContentHandler):
@@ -13,11 +15,14 @@ class InstanceHandler(xml.sax.ContentHandler):
         self.odd_spectrum = set()
         self.current_spectrum = self.even_spectrum
         self.in_cell = False
+        self.solution = None
 
     def startElement(self, name, attrs):
         if name == 'dna':
             self.length = attrs.getValue('length')
             self.start = attrs.getValue('start')
+            if 'solution' in attrs.getNames():
+                self.solution = attrs.getValue('solution')
         elif name == 'cell':
             self.in_cell = True
 
@@ -30,14 +35,6 @@ class InstanceHandler(xml.sax.ContentHandler):
     def characters(self, content):
         if self.in_cell:
             self.current_spectrum.add(content)
-
-def add_x(oligo):
-    oligo = list(oligo)
-    for i in range(1, len(oligo) - 1, 2):
-        oligo[i] = 'X'
-    if len(oligo) % 2 == 1:
-        oligo[-2] = 'X'
-    return ''.join(oligo)
 
 def check(instance, sequence):
     even_oligos_num = len(instance.even_spectrum)
@@ -63,11 +60,22 @@ def check(instance, sequence):
     if sequence[0:len(instance.start)] != instance.start:
         print('START WRONG')
 
+
     print('Length: {}/{}'.format(len(sequence), instance.length))
     print_fraction('Even:', even_oligos, even_oligos_num)
     print_fraction(' Odd:', odd_oligos, odd_oligos_num)
     print_fraction(' All:', all_oligos, all_oligos_num)
     print()
+    if instance.solution is not None:
+        norm = max(len(sequence), len(instance.solution))
+        print_fraction(' Lev:', norm - levenshtein_distance(sequence, instance.solution), 
+            norm)
+        print()
+
+    print(sequence)
+    if instance.solution is not None:
+        print(instance.solution)
+
     return (all_oligos/all_oligos_num * 100, 100)
 
 def print_fraction(header, numerator, denominator):
@@ -80,28 +88,55 @@ def file_key(file):
         keys[i] = int(keys[i])
     return keys
 
-files = listdir(instances_dir)
-files.sort(key=file_key)
-
-xml_reader = xml.sax.make_parser()
-cumulative = [0, 0]
-for i, file_path in enumerate(files):
+def process_instance(instance, header):
     handler = InstanceHandler()
-    xml_reader.setContentHandler(handler)
-    xml_reader.parse(instances_dir + file_path)
+    xml.sax.parseString(instance, handler)
 
-    file = open(instances_dir + file_path)
-    process = subprocess.run([solution_command], stdin=file, text=True,
+    process = subprocess.run([solution_command], input=instance, text=True,
         capture_output=True, check=True)
 
-    print('{:02}. {}'.format(i + 1, file_path))
+    print(header)
     # Iterations
     print(process.stdout.split('\n')[-4])
     # Elapsed time
     print(process.stdout.split('\n')[-3])
     result = check(handler, process.stdout.split('\n')[-2])
-    cumulative[0] += result[0]
-    cumulative[1] += result[1]
     print('')
-print_fraction('Sum:', *cumulative)
-print()
+    return result
+
+def levenshtein_distance(seq1, seq2):
+    lev = [[i + j for j in range(len(seq2) + 1)] for i in range(len(seq1) + 1)]
+    for i in range(1, len(seq1) + 1):
+        for j in range(1, len(seq2) + 1):
+            lev[i][j] = min(
+                lev[i - 1][j] + 1, 
+                lev[i][j - 1] + 1, 
+                lev[i - 1][j - 1] + (seq1[i - 1] != seq2[j - 1])
+            )
+    return lev[len(seq1)][len(seq2)]
+
+if __name__ == '__main__':
+    if len(sys.argv) >= 2 and sys.argv[1] == '--generate':
+        n = 500
+        k = 7
+        seed = None
+        error_rate = 20
+
+        header = 'n={} k={} error_rate={} seed={}'.format(n, k, error_rate, seed)
+        instance = generate(n, k, seed, error_rate/100)
+        process_instance(instance, header)
+    else:
+        files = listdir(instances_dir)
+        files.sort(key=file_key)
+
+        xml_reader = xml.sax.make_parser()
+        cumulative = [0, 0]
+        for i, file_path in enumerate(files):
+            with open(instances_dir + file_path) as file:
+                header = '{:02}. {}'.format(i + 1, file_path)
+                instance = file.read()
+                result = process_instance(instance, header)
+                cumulative[0] += result[0]
+                cumulative[1] += result[1]
+        print_fraction('Sum:', *cumulative)
+        print()
