@@ -79,7 +79,7 @@ std::string GaSolver::solve()
 
     solveRecursion(oddPath, evenPath, verticesAvailability, {0, 0});
 
-    return "abc";
+    return solutions.size() > 0 ? solutions[0] : "NOT FOUND";
 }
 
 bool GaSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath, 
@@ -98,18 +98,23 @@ bool GaSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath,
     {
         return KEEPGOING;
     }
-    //if dna paths contain enough elements
-    else if (longerPath.getLength() == length)
+    // if all vertices are used
+    else if (find(verticesAvailability.begin(), verticesAvailability.end(), true) == verticesAvailability.end())
     {
         std::cout << "solution:" << std::endl;
         shorterPath.print();
         longerPath.print();
         std::cout << std::endl;
 
-        //create solution TODO
-        std::string newSolution = "abc";
+        std::string newSolution = longerPath.substr(0, longerPath.getLength());
+        for (int i = 0; i < shorterPath.getLength(); ++i) {
+            if (newSolution[i] == 'X') {
+                newSolution[i] = shorterPath.substr(i, 1)[0];
+            }
+        }
 
         //test solution TODO
+        // test for oligos from second set
         bool isCorrect = true;
         
         if (isCorrect)
@@ -151,6 +156,7 @@ bool GaSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath,
     //for each vertexID in candidates
     for (int vertexID : candidates)
     {
+        auto errorsCountPrev = errorsCount;
         //if vertex is not verified by odd spectrum
         if (!verifyElementWithOddSpectrum(&shorterPath, &longerPath, vertexID))
         {
@@ -223,6 +229,7 @@ bool GaSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath,
 
         //set vertex as available
         verticesAvailability[vertexID] = AVAILABLE;
+        errorsCount = errorsCountPrev;
 
         std::cout << result << " back to " << newElement << std::endl;
         std::cout << "odd: " << errorsCount[ODD] << std::endl;
@@ -230,6 +237,7 @@ bool GaSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath,
         shorterPath.print();
         longerPath.print();
         std::cout << std::endl;
+
 
         //for (int i = 0; i < verticesAvailability.size(); i++)
         //{
