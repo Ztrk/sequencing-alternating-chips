@@ -19,9 +19,9 @@ public:
     std::string solve();
 
 private:
-    const int timeLimit = 4000;
-    const int solutionsLimit = 15;
-    const int iterationsLimit = 100;
+    const int timeLimit = 4000000;
+    const int solutionsLimit = 10;
+    const int iterationsLimit = 100000;
 
     std::vector<std::string> even_spectrum;
     std::unordered_set<std::string> odd_spectrum;
@@ -36,11 +36,8 @@ private:
     int perfectSpectrumOddCount;
 
     //even and odd negative errors count
-    int evenNegativeErrorsCount;
-    int oddNegativeErrorsCount;
-
-    //solution elements count
-    int solutionElementsCount;
+    int evenNegativeErrorsExpectedCount;
+    int oddNegativeErrorsExpectedCount;
 
     //overlap between elements graph
     OverlapGraph* overlapGraph;
@@ -58,8 +55,24 @@ private:
     //how many iterations have been rejected
     int rejectedItereationsCount;
 
+    //go throu all possible combinations (break if stop condition detected)
+    //push all found solutions to solutions vector
+    //add new elements to evenPath and oddPath
+    //pass new paths as the arguments to the next recursion
+    bool solveRecursion(DNAPath shorterPath, DNAPath longerPath, 
+        std::vector <bool> verticesAvailability, std::vector <int> errorsCount);
 
-    void solveRecursion(DNAPath evenPath, DNAPath oddPath, std::vector <bool> verticesAvailability);
+    //find and return all next possible vertices from last vertex 
+    //from shorter path. Verify if vertices aren't already used
+    //and separate them between verified and unverified
+    std::vector <int> findAllPossibleVertices(DNAPath* shorterPath, DNAPath* longerPath, 
+        std::vector <bool> verticesAvailability);
+
+    //create element to look for in odd spectrum
+    //if odd spectrum contains this element return true
+    //else return false
+    bool verifyElementWithOddSpectrum(DNAPath* shorterPath, DNAPath* longerPath, 
+        int elementID);
 };
 
 #endif

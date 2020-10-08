@@ -1,0 +1,14 @@
+<dna key="1840355" length="10" start="ACCTC">
+	<probe pattern="NXNXN">
+		<cell>AXCXC</cell>
+		<cell>CXCXG</cell>
+		<cell>TXTXG</cell>
+		<cell>CXTXT</cell>
+		
+	</probe>
+	<probe pattern="NXNN">
+		<cell>CXCT</cell>
+		<cell>TXTG</cell>
+		<cell>CXGG</cell>
+	</probe>
+</dna>

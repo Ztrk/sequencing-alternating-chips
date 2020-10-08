@@ -5,6 +5,8 @@
 
 #define NOTAVAILABLE 0
 #define AVAILABLE 1
+#define STOP 0
+#define KEEPGOING 1
 #define EVEN 0
 #define ODD 1
 
@@ -43,11 +45,8 @@ GaSolver::GaSolver(const std::vector<std::string> &even_spectrum_input,
 
     //calculate even and odd negative errors count
     //even_spectrum.size() - 1 because odd path starting element doesn't count
-    evenNegativeErrorsCount = perfectSpectrumEvenCount - (even_spectrum.size() - 1);
-    oddNegativeErrorsCount = perfectSpectrumOddCount - odd_spectrum.size();
-
-    //calculate solution elements count
-    int solutionElementsCount = perfectSpectrumEvenCount - evenNegativeErrorsCount;
+    evenNegativeErrorsExpectedCount = perfectSpectrumEvenCount - (even_spectrum.size() - 1);
+    oddNegativeErrorsExpectedCount = perfectSpectrumOddCount - odd_spectrum.size();
 
     //create overlap between elements graph
     overlapGraph = new OverlapGraph(even_spectrum);
@@ -78,66 +77,268 @@ std::string GaSolver::solve()
     verticesAvailability[0] = NOTAVAILABLE;
     verticesAvailability[1] = NOTAVAILABLE;
 
-    solveRecursion(evenPath, oddPath, verticesAvailability);
+    solveRecursion(oddPath, evenPath, verticesAvailability, {0, 0});
 
     return "abc";
 }
 
-//go throu all possible combinations (break if stop condition detected)
-//push all found solutions to solutions vector
-//add new elements to evenPath and oddPath
-//pass new paths as the arguments to the next recursion
-void GaSolver::solveRecursion(DNAPath evenPath, DNAPath oddPath, 
-        std::vector <bool> verticesAvailability)
+bool GaSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath, 
+        std::vector <bool> verticesAvailability, std::vector <int> errorsCount)
 {
-    //if dna paths contain enough elements
-    if (evenPath.getElementsCount() + oddPath.getElementsCount() == solutionElementsCount)
-    {
-        //create solution
-        std::string newSolution;
-
-        //test solution
-
-        //add solution to solutions vector
-        solutions.push_back(newSolution);
-    }
-
     //calculate alhorithm work duration
     auto duration = std::chrono::high_resolution_clock::now() - startTime;
     //if execution time exceeded the limit stop algorithm
     if (timeLimit < std::chrono::duration_cast <std::chrono::seconds> (duration).count())
     {
-        return;
+        return STOP;
     }
-
-    //if found solutions count is equal to solutions limit stop algorithm
-    if (solutions.size() == solutionsLimit)
+    //if one path is longer than expected length
+    else if (length < shorterPath.getLength() ||
+        length < longerPath.getLength())
     {
-        return;
+        return KEEPGOING;
     }
-
-    //if rejected iterations count exceeded the limit stop algorithm
-    if (iterationsLimit < rejectedItereationsCount)
+    //if dna paths contain enough elements
+    else if (longerPath.getLength() == length)
     {
-        return;
+        std::cout << "solution:" << std::endl;
+        shorterPath.print();
+        longerPath.print();
+        std::cout << std::endl;
+
+        //create solution TODO
+        std::string newSolution = "abc";
+
+        //test solution TODO
+        bool isCorrect = true;
+        
+        if (isCorrect)
+        {
+            //add solution to solutions vector
+            solutions.push_back(newSolution);
+
+            //if found solutions count is equal to solutions limit stop algorithm
+            if (solutions.size() == solutionsLimit)
+            {
+                return STOP;
+            }
+        }
+        else if (!isCorrect)
+        {
+            //increment rejected iterations count
+            rejectedItereationsCount++;
+
+            //if rejected iterations count exceeded the limit stop algorithm
+            if (iterationsLimit < rejectedItereationsCount)
+            {
+                return STOP;
+            }
+        }
+
+        return KEEPGOING;
     }
 
-    //we will try to add new element to shorter path
-    int shorterPath;
+    //find all next possible vertices
+    std::vector <int> candidates = findAllPossibleVertices(&shorterPath, &longerPath, verticesAvailability);
 
-    //all elements overlaping with last element from shorter path
+    std::cout << "first time. Options:";
+    for(int i = 0; i < candidates.size(); i++)
+    {
+        std::cout << " " << candidates[i]; 
+    }
+    std::cout << std::endl << std::endl;
+
+    //for each vertexID in candidates
+    for (int vertexID : candidates)
+    {
+        //if vertex is not verified by odd spectrum
+        if (!verifyElementWithOddSpectrum(&shorterPath, &longerPath, vertexID))
+        {
+            //increment odd negative errors count
+            errorsCount[ODD]++;
+            std::cout << "odd: " << errorsCount[ODD] << std::endl;
+
+            //if odd negative errors count is greater than expected count
+            if (oddNegativeErrorsExpectedCount < errorsCount[ODD])
+            {
+                std::cout << "odd negative" << std::endl << std::endl;
+                //decrement odd negative errors count
+                errorsCount[ODD]--;
+
+                //take new vertexID
+                continue;
+            }
+        }
+
+        //find vertex element string
+        std::string newElement = even_spectrum[vertexID];
+
+        //create new paths
+        DNAPath newPath1 = shorterPath;
+        DNAPath newPath2 = longerPath;
+
+        //add vertex to new shorter path
+        //assumed even negative errors count
+        int assumedErrorsCount = newPath1.addElement(newElement, vertexID);
+        
+        //add assumed errors to error counter
+        errorsCount[EVEN] += assumedErrorsCount;
+        std::cout << "even: " << errorsCount[EVEN] << std::endl;
+
+        //if even negative errors count is greater than expected count
+        if (evenNegativeErrorsExpectedCount < errorsCount[EVEN])
+        {
+            std::cout << "even negative" << std::endl << std::endl;
+
+            //subtract assumed errors count from even errors counter
+            errorsCount[EVEN] -= assumedErrorsCount;
+
+            //take new vertexID
+            continue;
+        }
+
+        std::cout << "after adding " << vertexID << "  " << newElement << std::endl;
+        newPath1.print();
+        newPath2.print();
+        std::cout << std::endl;
+
+        //set vertex as not available
+        verticesAvailability[vertexID] = NOTAVAILABLE;
+
+        //result of new recursion
+        bool result;
+
+        //if newPath1 is shorter
+        if (newPath1.getLength() <= newPath2.getLength())
+        {
+            //keep looking for the solutions
+            result = solveRecursion(newPath1, newPath2, verticesAvailability, errorsCount);
+        }
+        //if newPath2 is shorter
+        else if (newPath2.getLength() < newPath1.getLength())
+        {
+            //keep looking for the solutions
+            result = solveRecursion(newPath2, newPath1, verticesAvailability, errorsCount);
+        }
+
+        //set vertex as available
+        verticesAvailability[vertexID] = AVAILABLE;
+
+        std::cout << result << " back to " << newElement << std::endl;
+        std::cout << "odd: " << errorsCount[ODD] << std::endl;
+        std::cout << "even: " << errorsCount[EVEN] << std::endl;
+        shorterPath.print();
+        longerPath.print();
+        std::cout << std::endl;
+
+        //for (int i = 0; i < verticesAvailability.size(); i++)
+        //{
+        //    if (verticesAvailability[i] == AVAILABLE)
+        //    {
+        //        std::cout << i << " ";
+        //    }
+        //}
+        //std::cout << std::endl << std::endl;
+
+        if (result == STOP)
+        {
+            return STOP;
+        }
+    }
+
+    return KEEPGOING;
+}
+
+std::vector <int> GaSolver::findAllPossibleVertices(DNAPath* shorterPath, DNAPath* longerPath, 
+        std::vector <bool> verticesAvailability)
+{
+    //all outgoing vertices from last vertex
+    std::vector <int> outgoingVertices = overlapGraph->getOutgoingVertices(shorterPath->lastElementID);
+
+    //vertices from outgoingVertices that are still available
     std::vector <int> candidates;
 
-    //find shorter path
-    if (evenPath.getLength() < oddPath.getLength())
+    //for each vertex in outgoingVertices
+    for (int vertexID : outgoingVertices)
     {
-        shorterPath = EVEN;
-        candidates = overlapGraph->getOutgoingVertices(evenPath.lastElementID);
-    }
-    else if (oddPath.getLength() < evenPath.getLength())
-    {
-        shorterPath = ODD;
-        candidates = overlapGraph->getOutgoingVertices(oddPath.lastElementID);
+        //if vertex is available add it to candidates
+        if (verticesAvailability[vertexID] == AVAILABLE)
+        {
+            candidates.push_back(vertexID);
+        }
     }
 
+    //lambda for getting the better element
+    //better means more overlap with the last element
+    //if overlaps are equal look for the verification
+    //with odd spectrum
+    auto overlapThenVerificationLambda = [=](int firstVectorID, int secondVectorID)
+    {
+        //first element overlap with last element from the path
+        int firstOverlap = (overlapGraph->graph)[shorterPath->lastElementID][firstVectorID];
+
+        //second element overlap with last element from the path
+        int secondOverlap = (overlapGraph->graph)[shorterPath->lastElementID][secondVectorID];
+        
+        //elements overlaps differ from each other
+        if (firstOverlap != secondOverlap)
+        {
+            return firstOverlap < secondOverlap;
+        }
+        //elements overlaps are equal
+        else if (firstOverlap == secondOverlap)
+        {
+            //see if elements are verified by odd spectrum
+            //first element verification by odd spectrum
+            bool isFirstVerified = verifyElementWithOddSpectrum(shorterPath, longerPath, firstVectorID);
+
+            //second element verification by odd spectrum
+            bool isSecondVerified = verifyElementWithOddSpectrum(shorterPath, longerPath, secondVectorID);
+
+            return isSecondVerified <= isFirstVerified;
+        }
+
+        return false;
+    };
+
+    //sort outgoingVertices by overlap and isVerified
+    std::sort(candidates.begin(), candidates.end(), overlapThenVerificationLambda);
+
+    //return Candidates created with
+    //verifiedCandidates and unverifiedCandidates
+    return candidates;
+}
+
+bool GaSolver::verifyElementWithOddSpectrum(DNAPath* shorterPath, DNAPath* longerPath, 
+    int elementID)
+{
+    //calculate from which position of dna path the interesting part starts
+    //example:
+    //shorter path: AXCXAXCXT
+    //new element:        CXTXGXT
+    //longer path: GXCXGXTXAXGXCX
+    //interesting part:  TXAXGG 
+    //interesting part length is equal to odd elements length
+    int beginningPosition = shorterPath->getLength() - oddLength + 2;
+
+    //create verifying element to look for in odd spectrum
+    //beginning of element is the interesting part described above
+    std::string beginning = longerPath->substr(beginningPosition, oddLength - 1);
+
+    //find the expanding nucleotide
+    char expandingNucleotide = shorterPath->findExpandingNucleotide(even_spectrum[elementID]);
+
+    //connect it into verifying element
+    std::string verifyingElement = beginning + expandingNucleotide;
+
+    //if verifying element is in odd spectrum verification succed
+    //else not succed
+    if (std::find(odd_spectrum.begin(), odd_spectrum.end(), verifyingElement) != odd_spectrum.end())
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }

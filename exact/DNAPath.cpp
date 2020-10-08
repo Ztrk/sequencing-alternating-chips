@@ -1,34 +1,72 @@
 #include <iostream>
 #include "DNAPath.h"
 
-//constructor
 DNAPath::DNAPath(std::string startingElement, int startingElementID)
 {
-    path = startingElement;
     lastElementID = startingElementID;
 
     //if starting element id is equal to 1
     //this means that we are creating odd path
     //and the starting element is 2 nucleotids shorter
+    //in this case we will add 'X' at the beginning of starting element
     if (startingElementID == 1)
     {
         isEven = false;
+        path = "X" + startingElement;
         elementLength = startingElement.length() + 2;
+        elementsCount = 1;
     }
     else
     {
         isEven = true;
+        path = startingElement;
         elementLength = startingElement.length();
+        elementsCount = 1;
     }
 }
 
-//add newElement to the dna path
-void DNAPath::addElement(std::string newElement) 
-{
-    path += newElement;
+int DNAPath::get_overlap(const std::string &a, const std::string &b) {
+    for (size_t overlap = b.size() - 1; overlap > 0; --overlap) {
+        bool equal = true;
+        for (size_t i = a.size() - overlap, j = 0; j < overlap; ++i, ++j) {
+            if (a[i] != b[j]) {
+                equal = false;
+                break;
+            }
+        }
+        if (equal) {
+            return overlap;
+        }
+    }
+    return 0;
 }
 
-//return the number of last nucleotides equal to elementLength
+void DNAPath::print()
+{
+    std::cout << path << std::endl;
+}
+
+int DNAPath::addElement(std::string newElement, int newElementID) 
+{
+    //change last element id
+    lastElementID = newElementID;
+
+    //find the overlap
+    int overlap = get_overlap(path, newElement);
+
+    //find a string to add to the path
+    std::string expandingString = newElement.substr(overlap, newElement.size() - overlap);
+
+    //add to the path
+    path += expandingString;
+
+    //increment elements count
+    elementsCount++;
+
+    //return how many negative errors has been assumed
+    return (expandingString.length() / 2) - 1;
+}
+
 std::string DNAPath::getLastElement() 
 {
     //calculate path length
@@ -40,23 +78,26 @@ std::string DNAPath::getLastElement()
     return path.substr(start, elementLength);
 }
 
-//return dna path length
 int DNAPath::getLength() 
 {
     return path.size();
 }
 
-//return the number of elements in the path
 int DNAPath::getElementsCount()
 {
-    if (isEven)
-    {
-        return ((this->getLength() - elementLength) / 2) + 1;
-    }
-    else if (!isEven)
-    {
-        return ((this->getLength() - (elementLength - 2)) / 2) + 1;
-    }
+    return elementsCount;
+}
 
-    return 0;
+char DNAPath::findExpandingNucleotide(std::string newElement)
+{
+    //calculate a new element with the path overlap
+    int overlap = get_overlap(path, newElement);
+
+    //return expanding nucleotide
+    return newElement[overlap + 1];
+}
+
+std::string DNAPath::substr(int beginningPosition, int length)
+{
+    return path.substr(beginningPosition, length);
 }
