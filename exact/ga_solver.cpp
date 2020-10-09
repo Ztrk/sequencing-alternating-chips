@@ -31,6 +31,14 @@ GaSolver::GaSolver(const std::vector<std::string> &even_spectrum_input,
     even_spectrum.insert(even_spectrum.begin(), even_start);
     even_spectrum.insert(even_spectrum.begin() + 1, odd_start);
 
+    add_oligos(even_spectrum, odd_spectrum);
+
+    for (int i = 0; i < even_spectrum.size(); i++)
+    {
+        std::cout << even_spectrum[i] << std::endl;
+    }
+    std::cout << std::endl;
+
     //calculate k value
     k = (even_spectrum[0].size() + 1) / 2;
 
@@ -64,6 +72,24 @@ GaSolver::GaSolver(const std::vector<std::string> &even_spectrum_input,
     rejectedItereationsCount = 0;
 }
 
+void GaSolver::add_oligos(std::vector<std::string> &even_spectrum, const std::vector<std::string> &odd_spectrum) {
+    std::unordered_set<std::string> parts;
+    size_t part_len = even_spectrum[0].size() - 2;
+    for (std::string &oligo : even_spectrum) {
+        for (size_t i = 0; i <= oligo.size() - part_len; i += 2) {
+            parts.insert(oligo.substr(i, part_len));
+        }
+    }
+
+    for (const std::string &oligo : odd_spectrum) {
+        std::string part = oligo.substr(0, part_len);
+        if (parts.find(part) == parts.end()) {
+            even_spectrum.push_back(part);
+            parts.insert(part);
+        }
+    }
+}
+
 std::string GaSolver::solve()
 {
     //create even and odd paths starting with given elements
@@ -78,6 +104,11 @@ std::string GaSolver::solve()
     verticesAvailability[1] = NOTAVAILABLE;
 
     solveRecursion(oddPath, evenPath, verticesAvailability, {0, 0});
+
+    for (int i = 1; i < solutions.size(); i++)
+    {
+        std::cout << solutions[i] << std::endl;
+    }
 
     return solutions.size() > 0 ? solutions[0] : "NOT FOUND";
 }

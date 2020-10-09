@@ -16,11 +16,14 @@ public:
         const std::vector<std::string> &odd_spectrum, 
         const std::string &start, int length);
 
+    void add_oligos(std::vector<std::string> &even_spectrum, 
+        const std::vector<std::string> &odd_spectrum);
+
     std::string solve();
 
 private:
     const int timeLimit = 4000000;
-    const int solutionsLimit = 10;
+    const int solutionsLimit = 1;
     const int iterationsLimit = 100000;
 
     std::vector<std::string> even_spectrum;
