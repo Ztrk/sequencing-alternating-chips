@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <iostream>
 #include "exact_solver.h"
+using namespace std;
 
 #define NOTAVAILABLE 0
 #define AVAILABLE 1
@@ -126,10 +127,6 @@ bool ExactSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath,
     // if all vertices are used
     else if (find(verticesAvailability.begin(), verticesAvailability.end(), true) == verticesAvailability.end())
     {
-        // std::cout << "solution:" << std::endl;
-        // shorterPath.print();
-        // longerPath.print();
-        // std::cout << std::endl;
 
         std::string newSolution = longerPath.substr(0, longerPath.getLength());
         for (int i = 0; i < shorterPath.getLength(); ++i) {
@@ -138,9 +135,30 @@ bool ExactSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath,
             }
         }
 
-        //test solution TODO
-        // test for oligos from second set
-        bool isCorrect = true;
+        // Test if every oligo from second set exists in solution
+        unordered_set<string> odd_spectrum_copy(odd_spectrum);
+        for (int i = 0; i <= shorterPath.getLength() - oddLength + 1; ++i) {
+            string odd_oligo;
+            if (shorterPath.substr(i, 1) != "X") {
+                odd_oligo = shorterPath.substr(i, oddLength - 1);
+                odd_oligo += longerPath.substr(i + oddLength - 1, 1);
+            }
+            else {
+                odd_oligo = longerPath.substr(i, oddLength - 1);
+                odd_oligo += shorterPath.substr(i + oddLength - 1, 1);
+            }
+            odd_spectrum_copy.erase(odd_oligo);
+        }
+
+        cout << newSolution << '\n';
+        cout << newSolution.length() << '\n';
+        cout << odd_spectrum_copy.size() << '\n';
+        for (const string &oligo : odd_spectrum_copy) {
+            cout << oligo << '\n';
+        }
+        cout << endl;
+
+        bool isCorrect = odd_spectrum_copy.size() == 0;
         
         if (isCorrect)
         {
@@ -354,14 +372,6 @@ bool ExactSolver::verifyElementWithOddSpectrum(DNAPath* shorterPath, DNAPath* lo
     //connect it into verifying element
     std::string verifyingElement = beginning + expandingNucleotide;
 
-    //if verifying element is in odd spectrum verification succed
-    //else not succed
-    if (std::find(odd_spectrum.begin(), odd_spectrum.end(), verifyingElement) != odd_spectrum.end())
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    // if verifying element is in odd spectrum verification succeeds
+    return odd_spectrum.find(verifyingElement) != odd_spectrum.end();
 }
