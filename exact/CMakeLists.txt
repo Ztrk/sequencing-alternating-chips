@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.0)
 
 project(dna-sequencing-alt-negative-errors)
 
-add_executable(exact main.cpp ga_solver.cpp xml_reader.cpp DNAPath.cpp overlapGraph.cpp)
+add_executable(exact main.cpp exact_solver.cpp xml_reader.cpp DNAPath.cpp overlapGraph.cpp)
 
 target_link_libraries(exact PUBLIC tinyxml2)
  

@@ -2,7 +2,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include "ga_solver.h"
+#include "exact_solver.h"
 #include "xml_reader.h"
 using namespace std;
 
@@ -19,7 +19,7 @@ int main() {
 
     auto time_start = chrono::high_resolution_clock::now();
 
-    GaSolver solver(even, odd, start, length);
+    ExactSolver solver(even, odd, start, length);
     string result = solver.solve();
 
     auto elapsed = chrono::high_resolution_clock::now() - time_start;

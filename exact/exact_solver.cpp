@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
-#include "ga_solver.h"
+#include "exact_solver.h"
 
 #define NOTAVAILABLE 0
 #define AVAILABLE 1
@@ -10,7 +10,7 @@
 #define EVEN 0
 #define ODD 1
 
-GaSolver::GaSolver(const std::vector<std::string> &even_spectrum_input, 
+ExactSolver::ExactSolver(const std::vector<std::string> &even_spectrum_input, 
     const std::vector<std::string> &odd_spectrum, 
     const std::string &start, int length)
 : even_spectrum(even_spectrum_input), 
@@ -66,7 +66,7 @@ GaSolver::GaSolver(const std::vector<std::string> &even_spectrum_input,
     rejectedItereationsCount = 0;
 }
 
-void GaSolver::add_oligos(std::vector<std::string> &even_spectrum, const std::vector<std::string> &odd_spectrum) {
+void ExactSolver::add_oligos(std::vector<std::string> &even_spectrum, const std::vector<std::string> &odd_spectrum) {
     std::unordered_set<std::string> parts;
     size_t part_len = even_spectrum[0].size() - 2;
     for (std::string &oligo : even_spectrum) {
@@ -84,7 +84,7 @@ void GaSolver::add_oligos(std::vector<std::string> &even_spectrum, const std::ve
     }
 }
 
-std::string GaSolver::solve()
+std::string ExactSolver::solve()
 {
     //create even and odd paths starting with given elements
     DNAPath evenPath(evenStart, 0);
@@ -107,7 +107,7 @@ std::string GaSolver::solve()
     return solutions.size() > 0 ? solutions[0] : "NOT FOUND";
 }
 
-bool GaSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath, 
+bool ExactSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath, 
         std::vector <bool> verticesAvailability, std::vector <int> errorsCount)
 {
     //calculate alhorithm work duration
@@ -272,7 +272,7 @@ bool GaSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath,
     return KEEPGOING;
 }
 
-std::vector <int> GaSolver::findAllPossibleVertices(DNAPath* shorterPath, DNAPath* longerPath, 
+std::vector <int> ExactSolver::findAllPossibleVertices(DNAPath* shorterPath, DNAPath* longerPath, 
         std::vector <bool> verticesAvailability)
 {
     //all outgoing vertices from last vertex
@@ -332,7 +332,7 @@ std::vector <int> GaSolver::findAllPossibleVertices(DNAPath* shorterPath, DNAPat
     return candidates;
 }
 
-bool GaSolver::verifyElementWithOddSpectrum(DNAPath* shorterPath, DNAPath* longerPath, 
+bool ExactSolver::verifyElementWithOddSpectrum(DNAPath* shorterPath, DNAPath* longerPath, 
     int elementID)
 {
     //calculate from which position of dna path the interesting part starts

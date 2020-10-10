@@ -10,9 +10,9 @@
 #include "DNAPath.h"
 #include "overlapGraph.h"
 
-class GaSolver {
+class ExactSolver {
 public:
-    GaSolver(const std::vector<std::string> &even_spectrum_input, 
+    ExactSolver(const std::vector<std::string> &even_spectrum_input, 
         const std::vector<std::string> &odd_spectrum, 
         const std::string &start, int length);
 
