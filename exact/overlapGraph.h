@@ -25,7 +25,7 @@ public:
 
     //return all vertices to which beginningVertex
     //has an outgoing edge
-    std::vector <int> getOutgoingVertices(int beginningVertexID);
+    std::vector <int> getOutgoingVertices(unsigned beginningVertexID);
 };
 
 #endif

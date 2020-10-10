@@ -16,13 +16,13 @@ OverlapGraph::OverlapGraph(std::vector <std::string> evenSpectrum)
     graph.insert(graph.begin(), verticesCount, row);
 
     //iterate throu vertices
-    for (int prefixVertexID = 0; prefixVertexID < graph.size(); prefixVertexID++)
+    for (size_t prefixVertexID = 0; prefixVertexID < graph.size(); prefixVertexID++)
     {
         //find prefix vertex value
         std::string prefixVertex = evenSpectrum[prefixVertexID];
 
         //iterate throu vertices except from starting vertices
-        for (int postfixVertexID = 2; postfixVertexID < graph.size(); postfixVertexID++)
+        for (size_t postfixVertexID = 2; postfixVertexID < graph.size(); postfixVertexID++)
         {
             //skip iteration if postfixVertex == prefixVertex
             if (postfixVertexID == prefixVertexID)
@@ -88,16 +88,16 @@ void OverlapGraph::print()
     }
 }
 
-std::vector <int> OverlapGraph::getOutgoingVertices(int beginningVertexID)
+std::vector <int> OverlapGraph::getOutgoingVertices(unsigned beginningVertexID)
 {
     //vector with the answer
     std::vector <int> outgoingVertices = {};
 
     //for each vertex
-    for (int vertexID = 0; vertexID < graph.size(); vertexID++)
+    for (size_t vertexID = 0; vertexID < graph.size(); vertexID++)
     {
         //continue if it's beginningVertex
-        if(vertexID == beginningVertexID)
+        if (vertexID == beginningVertexID)
         {
             continue;
         }

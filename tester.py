@@ -4,9 +4,9 @@ import sys
 import subprocess
 from generator import add_x, generate
 
-instances_dir = 'instances/'
-exact = 'build/exact/exact'
-heuristic = 'build/heuristic/heuristic'
+instances_dir = 'instances-small/'
+exact = 'release/exact/exact'
+heuristic = 'release/heuristic/heuristic'
 solution_command = exact
 
 class InstanceHandler(xml.sax.ContentHandler):
@@ -98,10 +98,12 @@ def process_instance(instance, header):
         capture_output=True, check=True)
 
     print(header)
-    # Iterations
-    print(process.stdout.split('\n')[-4])
+    if solution_command == heuristic:
+        # Iterations
+        print(process.stdout.split('\n')[-4])
     # Elapsed time
     print(process.stdout.split('\n')[-3])
+
     result = check(handler, process.stdout.split('\n')[-2])
     print('')
     return result

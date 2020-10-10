@@ -33,12 +33,6 @@ GaSolver::GaSolver(const std::vector<std::string> &even_spectrum_input,
 
     add_oligos(even_spectrum, odd_spectrum);
 
-    for (int i = 0; i < even_spectrum.size(); i++)
-    {
-        std::cout << even_spectrum[i] << std::endl;
-    }
-    std::cout << std::endl;
-
     //calculate k value
     k = (even_spectrum[0].size() + 1) / 2;
 
@@ -105,7 +99,7 @@ std::string GaSolver::solve()
 
     solveRecursion(oddPath, evenPath, verticesAvailability, {0, 0});
 
-    for (int i = 1; i < solutions.size(); i++)
+    for (size_t i = 1; i < solutions.size(); i++)
     {
         std::cout << solutions[i] << std::endl;
     }
@@ -132,10 +126,10 @@ bool GaSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath,
     // if all vertices are used
     else if (find(verticesAvailability.begin(), verticesAvailability.end(), true) == verticesAvailability.end())
     {
-        std::cout << "solution:" << std::endl;
-        shorterPath.print();
-        longerPath.print();
-        std::cout << std::endl;
+        // std::cout << "solution:" << std::endl;
+        // shorterPath.print();
+        // longerPath.print();
+        // std::cout << std::endl;
 
         std::string newSolution = longerPath.substr(0, longerPath.getLength());
         for (int i = 0; i < shorterPath.getLength(); ++i) {
@@ -154,7 +148,7 @@ bool GaSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath,
             solutions.push_back(newSolution);
 
             //if found solutions count is equal to solutions limit stop algorithm
-            if (solutions.size() == solutionsLimit)
+            if (static_cast<int>(solutions.size()) == solutionsLimit)
             {
                 return STOP;
             }
@@ -177,12 +171,12 @@ bool GaSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath,
     //find all next possible vertices
     std::vector <int> candidates = findAllPossibleVertices(&shorterPath, &longerPath, verticesAvailability);
 
-    std::cout << "first time. Options:";
-    for(int i = 0; i < candidates.size(); i++)
-    {
-        std::cout << " " << candidates[i]; 
-    }
-    std::cout << std::endl << std::endl;
+    // std::cout << "first time. Options:";
+    // for(size_t i = 0; i < candidates.size(); i++)
+    // {
+        // std::cout << " " << candidates[i]; 
+    // }
+    // std::cout << std::endl << std::endl;
 
     //for each vertexID in candidates
     for (int vertexID : candidates)
@@ -193,12 +187,12 @@ bool GaSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath,
         {
             //increment odd negative errors count
             errorsCount[ODD]++;
-            std::cout << "odd: " << errorsCount[ODD] << std::endl;
+            // std::cout << "odd: " << errorsCount[ODD] << std::endl;
 
             //if odd negative errors count is greater than expected count
             if (oddNegativeErrorsExpectedCount < errorsCount[ODD])
             {
-                std::cout << "odd negative" << std::endl << std::endl;
+                // std::cout << "odd negative" << std::endl << std::endl;
                 //decrement odd negative errors count
                 errorsCount[ODD]--;
 
@@ -220,12 +214,12 @@ bool GaSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath,
         
         //add assumed errors to error counter
         errorsCount[EVEN] += assumedErrorsCount;
-        std::cout << "even: " << errorsCount[EVEN] << std::endl;
+        // std::cout << "even: " << errorsCount[EVEN] << std::endl;
 
         //if even negative errors count is greater than expected count
         if (evenNegativeErrorsExpectedCount < errorsCount[EVEN])
         {
-            std::cout << "even negative" << std::endl << std::endl;
+            // std::cout << "even negative" << std::endl << std::endl;
 
             //subtract assumed errors count from even errors counter
             errorsCount[EVEN] -= assumedErrorsCount;
@@ -234,10 +228,10 @@ bool GaSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath,
             continue;
         }
 
-        std::cout << "after adding " << vertexID << "  " << newElement << std::endl;
-        newPath1.print();
-        newPath2.print();
-        std::cout << std::endl;
+        // std::cout << "after adding " << vertexID << "  " << newElement << std::endl;
+        // newPath1.print();
+        // newPath2.print();
+        // std::cout << std::endl;
 
         //set vertex as not available
         verticesAvailability[vertexID] = NOTAVAILABLE;
@@ -262,22 +256,12 @@ bool GaSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath,
         verticesAvailability[vertexID] = AVAILABLE;
         errorsCount = errorsCountPrev;
 
-        std::cout << result << " back to " << newElement << std::endl;
-        std::cout << "odd: " << errorsCount[ODD] << std::endl;
-        std::cout << "even: " << errorsCount[EVEN] << std::endl;
-        shorterPath.print();
-        longerPath.print();
-        std::cout << std::endl;
-
-
-        //for (int i = 0; i < verticesAvailability.size(); i++)
-        //{
-        //    if (verticesAvailability[i] == AVAILABLE)
-        //    {
-        //        std::cout << i << " ";
-        //    }
-        //}
-        //std::cout << std::endl << std::endl;
+        // std::cout << result << " back to " << newElement << std::endl;
+        // std::cout << "odd: " << errorsCount[ODD] << std::endl;
+        // std::cout << "even: " << errorsCount[EVEN] << std::endl;
+        // shorterPath.print();
+        // longerPath.print();
+        // std::cout << std::endl;
 
         if (result == STOP)
         {
@@ -334,7 +318,7 @@ std::vector <int> GaSolver::findAllPossibleVertices(DNAPath* shorterPath, DNAPat
             //second element verification by odd spectrum
             bool isSecondVerified = verifyElementWithOddSpectrum(shorterPath, longerPath, secondVectorID);
 
-            return isSecondVerified <= isFirstVerified;
+            return isSecondVerified < isFirstVerified;
         }
 
         return false;
