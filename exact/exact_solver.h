@@ -16,9 +16,6 @@ public:
         const std::vector<std::string> &odd_spectrum, 
         const std::string &start, int length);
 
-    void add_oligos(std::vector<std::string> &even_spectrum, 
-        const std::vector<std::string> &odd_spectrum);
-
     std::string solve();
 
 private:
@@ -76,6 +73,10 @@ private:
     //else return false
     bool verifyElementWithOddSpectrum(DNAPath* shorterPath, DNAPath* longerPath, 
         int elementID);
+
+    void add_oligos(std::vector<std::string> &even_spectrum, 
+        const std::vector<std::string> &odd_spectrum);
+
 };
 
 #endif

@@ -2,12 +2,12 @@ from os import listdir
 import xml.sax
 import sys
 import subprocess
-from generator import add_x, generate
+from generator import add_x, generate, get_seed
 
 instances_dir = 'instances-small/'
 exact = 'release/exact/exact'
 heuristic = 'release/heuristic/heuristic'
-solution_command = exact
+solution_command = heuristic
 
 class InstanceHandler(xml.sax.ContentHandler):
     def __init__(self):
@@ -121,13 +121,13 @@ def levenshtein_distance(seq1, seq2):
 
 if __name__ == '__main__':
     if len(sys.argv) >= 2 and sys.argv[1] == '--generate':
-        n = 500
-        k = 7
-        seed = None
+        n = 50
+        k = 6
         error_rate = 20
+        seed = get_seed()
 
         header = 'n={} k={} error_rate={} seed={}'.format(n, k, error_rate, seed)
-        instance = generate(n, k, seed, error_rate/100)
+        instance = generate(n, k, error_rate/100, seed)
         process_instance(instance, header)
     else:
         files_all = listdir(instances_dir)

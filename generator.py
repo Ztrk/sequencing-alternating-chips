@@ -10,8 +10,7 @@ def add_x(oligo):
         oligo[-2] = 'X'
     return ''.join(oligo)
 
-def generate_sequence(length, seed):
-    random.seed(seed)
+def generate_sequence(length):
     seq = random.choices(["A", "C", "G", "T"], k=length)
     return ''.join(seq)
 
@@ -38,10 +37,11 @@ def get_oligo_sets(sequence, error_rate, k):
 
     return sorted(even_set), sorted(odd_set)
 
-def to_xml(sequence, even_oligos, odd_oligos, k):
+def to_xml(sequence, even_oligos, odd_oligos, k, seed):
     oligo_length = len(even_oligos[0])
 
     dna = ET.Element('dna')
+    dna.set('seed', str(seed))
     dna.set('length', str(len(sequence)))
     dna.set('start', sequence[0:oligo_length])
     dna.set('solution', sequence)
@@ -60,17 +60,23 @@ def to_xml(sequence, even_oligos, odd_oligos, k):
 
     return ET.tostring(dna, encoding="unicode")
 
-def generate(n, k, seed, error_rate):
-    seq = generate_sequence(n, seed)
+def get_seed():
+    return random.randint(0, 999999999)
+
+def generate(n, k, error_rate, seed=None):
+    if seed is None:
+        seed = get_seed()
+    random.seed(seed)
+    seq = generate_sequence(n)
     even_oligos, odd_oligos = get_oligo_sets(seq, error_rate, k)
-    return to_xml(seq, even_oligos, odd_oligos, k)
+    return to_xml(seq, even_oligos, odd_oligos, k, seed)
 
 if __name__ == "__main__":
-    n = 500
-    k = 7
-    seed = random.randint(0, 999999999)
+    n = 50
+    k = 6
     error_rate = 0.2
-    xml = generate(n, k, seed, error_rate)
+    seed = 245385500
+    xml = generate(n, k, error_rate, seed)
 
     folder = 'pygen_instances/'
     name = folder + 'alt-pygen_{}_{}_{}_{}.xml'.format(n, k, int(error_rate * 100), seed)

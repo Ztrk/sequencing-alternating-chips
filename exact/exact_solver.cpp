@@ -158,6 +158,14 @@ bool ExactSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath,
         }
         cout << endl;
 
+        if (odd_spectrum_copy.size() == 1) {
+            const string &oligo = *odd_spectrum_copy.begin();
+            if (longerPath.substr(longerPath.getLength() + 1 - oddLength, oddLength - 1) == oligo.substr(0, oddLength - 1)) {
+                odd_spectrum_copy.erase(oligo);
+                newSolution += oligo[oddLength - 1];
+            }
+        }
+
         bool isCorrect = odd_spectrum_copy.size() == 0;
         
         if (isCorrect)
@@ -188,6 +196,13 @@ bool ExactSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath,
 
     //find all next possible vertices
     std::vector <int> candidates = findAllPossibleVertices(&shorterPath, &longerPath, verticesAvailability);
+
+    if (candidates.size() == 0) {
+        cout << "No candidates" << '\n';
+        shorterPath.print();
+        longerPath.print();
+        cout << endl;
+    }
 
     // std::cout << "first time. Options:";
     // for(size_t i = 0; i < candidates.size(); i++)
