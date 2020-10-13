@@ -98,7 +98,7 @@ std::string ExactSolver::solve()
     verticesAvailability[0] = NOTAVAILABLE;
     verticesAvailability[1] = NOTAVAILABLE;
 
-    solveRecursion(oddPath, evenPath, verticesAvailability, {0, 0});
+    solveRecursion(oddPath, evenPath, verticesAvailability, {0, 0}, odd_spectrum);
 
     for (size_t i = 1; i < solutions.size(); i++)
     {
@@ -109,7 +109,7 @@ std::string ExactSolver::solve()
 }
 
 bool ExactSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath, 
-        std::vector <bool> verticesAvailability, std::vector <int> errorsCount)
+        std::vector <bool> verticesAvailability, std::vector <int> errorsCount, unordered_set<string> odd_oligos)
 {
     //calculate alhorithm work duration
     auto duration = std::chrono::high_resolution_clock::now() - startTime;
@@ -214,52 +214,35 @@ bool ExactSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath,
     //for each vertexID in candidates
     for (int vertexID : candidates)
     {
-        auto errorsCountPrev = errorsCount;
-        //if vertex is not verified by odd spectrum
-        if (!verifyElementWithOddSpectrum(&shorterPath, &longerPath, vertexID))
-        {
-            //increment odd negative errors count
-            errorsCount[ODD]++;
-            // std::cout << "odd: " << errorsCount[ODD] << std::endl;
 
-            //if odd negative errors count is greater than expected count
-            if (oddNegativeErrorsExpectedCount < errorsCount[ODD])
-            {
-                // std::cout << "odd negative" << std::endl << std::endl;
-                //decrement odd negative errors count
-                errorsCount[ODD]--;
-
-                //take new vertexID
-                continue;
-            }
-        }
-
-        //find vertex element string
         std::string newElement = even_spectrum[vertexID];
-
-        //create new paths
+        
+        // Remember previous values
+        auto errorsCountPrev = errorsCount;
         DNAPath newPath1 = shorterPath;
         DNAPath newPath2 = longerPath;
+        auto odd_oligos_copy = odd_oligos;
 
-        //add vertex to new shorter path
-        //assumed even negative errors count
-        int assumedErrorsCount = newPath1.addElement(newElement, vertexID);
-        
-        //add assumed errors to error counter
-        errorsCount[EVEN] += assumedErrorsCount;
-        // std::cout << "even: " << errorsCount[EVEN] << std::endl;
+        // Add vertex and update even errors
+        int even_errors = newPath1.addElement(newElement, vertexID);
+        errorsCount[EVEN] += even_errors;
 
-        //if even negative errors count is greater than expected count
-        if (evenNegativeErrorsExpectedCount < errorsCount[EVEN])
-        {
-            // std::cout << "even negative" << std::endl << std::endl;
-
-            //subtract assumed errors count from even errors counter
-            errorsCount[EVEN] -= assumedErrorsCount;
-
-            //take new vertexID
+        // When too many even spectrum errors, take next vertex
+        if (evenNegativeErrorsExpectedCount < errorsCount[EVEN]) {
+            errorsCount[EVEN] -= even_errors;
             continue;
         }
+
+        int odd_errors = count_errors_odd_spectrum(newPath1, newPath2, shorterPath.getLastElementID(), odd_oligos_copy);
+        errorsCount[ODD] += odd_errors;
+
+        // Take new oligo if too many errors in odd spectrum
+        if (oddNegativeErrorsExpectedCount < errorsCount[ODD]) {
+            errorsCount[EVEN] -= even_errors;
+            errorsCount[ODD] -= odd_errors;
+            continue;
+        }
+
 
         // std::cout << "after adding " << vertexID << "  " << newElement << std::endl;
         // newPath1.print();
@@ -276,13 +259,13 @@ bool ExactSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath,
         if (newPath1.getLength() <= newPath2.getLength())
         {
             //keep looking for the solutions
-            result = solveRecursion(newPath1, newPath2, verticesAvailability, errorsCount);
+            result = solveRecursion(newPath1, newPath2, verticesAvailability, errorsCount, odd_oligos_copy);
         }
         //if newPath2 is shorter
         else if (newPath2.getLength() < newPath1.getLength())
         {
             //keep looking for the solutions
-            result = solveRecursion(newPath2, newPath1, verticesAvailability, errorsCount);
+            result = solveRecursion(newPath2, newPath1, verticesAvailability, errorsCount, odd_oligos_copy);
         }
 
         //set vertex as available
@@ -389,4 +372,34 @@ bool ExactSolver::verifyElementWithOddSpectrum(DNAPath* shorterPath, DNAPath* lo
 
     // if verifying element is in odd spectrum verification succeeds
     return odd_spectrum.find(verifyingElement) != odd_spectrum.end();
+}
+
+int ExactSolver::count_errors_odd_spectrum(DNAPath &extended_path, DNAPath &second_path, 
+    int previous_oligo, unordered_set<string> &odd_oligos)
+{
+    int errors = 0;
+    int last_oligo = extended_path.getLastElementID();
+    int overlap = overlapGraph->get_overlap(previous_oligo, last_oligo);
+    int start = extended_path.getLength() - even_spectrum[last_oligo].length() + overlap + 1;
+    int end = min(second_path.getLength(), extended_path.getLength());
+
+    // Iterate over every ending of odd oligo
+    for (int i = start; i <= end; ++i) {
+        // Build oligo
+        string verifying_oligo;
+        if (i >= second_path.getLength() || second_path.substr(i, 1) == "X") {
+            verifying_oligo = second_path.substr(i - oddLength + 1, oddLength - 1);
+            verifying_oligo += extended_path.substr(i, 1);
+        }
+        else {
+            verifying_oligo = extended_path.substr(i - oddLength + 1, oddLength - 1);
+            verifying_oligo += second_path.substr(i, 1);
+        }
+        int num_removed = odd_oligos.erase(verifying_oligo);
+        if (num_removed == 0) {
+            ++errors;
+        }
+    }
+
+    return errors;
 }

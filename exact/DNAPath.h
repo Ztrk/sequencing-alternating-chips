@@ -39,6 +39,9 @@ public:
 
     //return the last element from the path
     std::string getLastElement();
+    inline int getLastElementID() {
+        return lastElementID;
+    }
 
     //return dna path length
     int getLength();

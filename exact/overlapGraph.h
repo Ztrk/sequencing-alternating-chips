@@ -12,13 +12,18 @@ public:
     //constructor
     OverlapGraph();
 
-private:
-    //return overlap between two given elements
-    int get_overlap(const std::string &a, const std::string &b);
-
-public:
-    //the overlap graph
+    const int evenLength;
     std::vector <std::vector <int> > graph; 
+
+    // Return longest overlap between two strings, excluding full overlap (equality).
+    // A must be at least as long as length of B - 1.
+    int get_overlap(const std::string &a, const std::string &b);
+    // Return overlap between two oligos with indexes a and b
+    inline int get_overlap(int a, int b) {
+        return graph[a][b] != 0 ? evenLength - 2 * graph[a][b] : 0;
+    }
+
+    //the overlap graph
 
     //print the graph
     void print();

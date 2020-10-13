@@ -2,10 +2,8 @@
 #include "overlapGraph.h"
 
 OverlapGraph::OverlapGraph(std::vector <std::string> evenSpectrum)
+    : evenLength(evenSpectrum[0].size())
 {
-    //calculate even element length
-    int evenLength = evenSpectrum[0].size();
-    
     //calculate vertices count
     int verticesCount = evenSpectrum.size();
 
@@ -53,11 +51,6 @@ OverlapGraph::OverlapGraph(std::vector <std::string> evenSpectrum)
             graph[prefixVertexID][postfixVertexID] = cost;
         }
     }
-}
-
-OverlapGraph::OverlapGraph()
-{
-
 }
 
 int OverlapGraph::get_overlap(const std::string &a, const std::string &b) {

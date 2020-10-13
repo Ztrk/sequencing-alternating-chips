@@ -55,12 +55,13 @@ private:
     //how many iterations have been rejected
     int rejectedItereationsCount;
 
-    //go throu all possible combinations (break if stop condition detected)
-    //push all found solutions to solutions vector
-    //add new elements to evenPath and oddPath
-    //pass new paths as the arguments to the next recursion
+    // go through all possible combinations (break if stop condition detected)
+    // push all found solutions to solutions vector
+    // add new elements to evenPath and oddPath
+    // pass new paths as the arguments to the next recursion
     bool solveRecursion(DNAPath shorterPath, DNAPath longerPath, 
-        std::vector <bool> verticesAvailability, std::vector <int> errorsCount);
+        std::vector <bool> verticesAvailability, std::vector <int> errorsCount, 
+        std::unordered_set<std::string> odd_oligos);
 
     //find and return all next possible vertices from last vertex 
     //from shorter path. Verify if vertices aren't already used
@@ -73,6 +74,12 @@ private:
     //else return false
     bool verifyElementWithOddSpectrum(DNAPath* shorterPath, DNAPath* longerPath, 
         int elementID);
+
+    // Counts odd spectrum errors that were added by extending with oligo
+    // Removes used odd oligos from the set
+    // Previous oligo is the one before last
+    int count_errors_odd_spectrum(DNAPath &extended_path, DNAPath &second_path, 
+        int prevsious_oligo, std::unordered_set<std::string> &odd_oligos);
 
     void add_oligos(std::vector<std::string> &even_spectrum, 
         const std::vector<std::string> &odd_spectrum);
