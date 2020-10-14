@@ -55,12 +55,19 @@ private:
     //how many iterations have been rejected
     int rejectedItereationsCount;
 
-    //go throu all possible combinations (break if stop condition detected)
+    //go through all possible combinations (break if stop condition detected)
     //push all found solutions to solutions vector
-    //add new elements to evenPath and oddPath
+    //add new elements to both paths
     //pass new paths as the arguments to the next recursion
     bool solveRecursion(DNAPath shorterPath, DNAPath longerPath, 
         std::vector <bool> verticesAvailability, std::vector <int> errorsCount);
+        
+    //go through all possible combinations (break if stop condition detected)
+    //push all found solutions to solutions vector
+    //add new odd elements to both paths
+    //pass new paths as the arguments to the next recursion    
+    bool solveRecursionOdd(DNAPath shorterPath, DNAPath longerPath, 
+        std::vector <std::string> availableOddElements);
 
     //find and return all next possible vertices from last vertex 
     //from shorter path. Verify if vertices aren't already used
