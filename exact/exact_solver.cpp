@@ -175,7 +175,7 @@ bool ExactSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath,
             solutions.push_back(newSolution);
 
             //if found solutions count is equal to solutions limit stop algorithm
-            if (static_cast<int>(solutions.size()) == solutionsLimit)
+            if (static_cast<int>(solutions.size()) >= solutionsLimit)
             {
                 return STOP;
             }
@@ -278,7 +278,7 @@ bool ExactSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath,
     if(candidates.size() == 0 &&
         shorterPath.getLength() < longerPath.getLength())
     {
-        solveRecursion(longerPath, shorterPath, verticesAvailability, errorsCount);
+        return solveRecursion(longerPath, shorterPath, verticesAvailability, errorsCount);
     }
 
     return KEEPGOING;
@@ -439,6 +439,10 @@ bool ExactSolver::verifyElementWithOddSpectrum(DNAPath* shorterPath, DNAPath* lo
     //longer path: GXCXGXTXAXGXCX
     //interesting part:  TXAXGG 
     //interesting part length is equal to odd elements length
+    if (shorterPath->getLength() > longerPath->getLength()) {
+        return true;
+    }
+
     int beginningPosition = shorterPath->getLength() - oddLength + 2;
 
     //create verifying element to look for in odd spectrum

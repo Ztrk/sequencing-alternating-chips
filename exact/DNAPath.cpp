@@ -76,7 +76,8 @@ bool DNAPath::addOddElement(DNAPath longerPath, std::string newOddElement)
     if(newOddElement.substr(0, newOddElement.length() - 1) == prefix)
     {
         //add expanding nucleotide to the path
-        path += 'X' + newOddElement[newOddElement.length() - 1];
+        path += "X";
+        path += newOddElement[newOddElement.length() - 1];
 
         //set lastElementID to -1
         //it means that the last added element was from
