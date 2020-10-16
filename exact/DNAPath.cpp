@@ -11,17 +11,11 @@ DNAPath::DNAPath(std::string startingElement, int startingElementID)
     //in this case we will add 'X' at the beginning of starting element
     if (startingElementID == 1)
     {
-        isEven = false;
         path = "X" + startingElement;
-        elementLength = startingElement.length() + 2;
-        elementsCount = 1;
     }
     else
     {
-        isEven = true;
         path = startingElement;
-        elementLength = startingElement.length();
-        elementsCount = 1;
     }
 }
 
@@ -60,32 +54,49 @@ int DNAPath::addElement(std::string newElement, int newElementID)
     //add to the path
     path += expandingString;
 
-    //increment elements count
-    elementsCount++;
-
     //return how many negative errors has been assumed
     return (expandingString.length() / 2) - 1;
 }
 
-std::string DNAPath::getLastElement() 
+bool DNAPath::addOddElement(DNAPath longerPath, std::string newOddElement) 
 {
-    //calculate path length
-    int pathLength = getLength(); 
-    
-    //calculate where last element starts
-    int start = pathLength - elementLength - 1;
+    //index to the nucleotide where 
+    //the odd extending element prefix ends
+    int prefixEnd = this->getLength() + 1;
 
-    return path.substr(start, elementLength);
+    //odd element prefix required to extend path
+    std::string prefix = longerPath.substr(prefixEnd + 1 - newOddElement.length(), 
+            newOddElement.length() - 1);
+
+    std::cout << path << std::endl << longerPath.path << std::endl 
+            << prefix << std::endl << newOddElement << std::endl << std::endl;
+    
+    //if prefix required to extend path and 
+    //newOddElement prefix are the same
+    if(newOddElement.substr(0, newOddElement.length() - 1) == prefix)
+    {
+        //add expanding nucleotide to the path
+        path += "X";
+        path += newOddElement[newOddElement.length() - 1];
+
+        //set lastElementID to -1
+        //it means that the last added element was from
+        //the odd spectrum
+        lastElementID = -1;
+
+        std::cout << "udalo sie" << std::endl << std::endl;
+
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 int DNAPath::getLength() 
 {
     return path.size();
-}
-
-int DNAPath::getElementsCount()
-{
-    return elementsCount;
 }
 
 char DNAPath::findExpandingNucleotide(std::string newElement)

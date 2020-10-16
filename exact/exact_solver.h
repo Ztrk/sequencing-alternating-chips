@@ -62,6 +62,13 @@ private:
     bool solveRecursion(DNAPath shorterPath, DNAPath longerPath, 
         std::vector <bool> verticesAvailability, std::vector <int> errorsCount, 
         std::unordered_set<std::string> odd_oligos);
+        
+    //go through all possible combinations (break if stop condition detected)
+    //push all found solutions to solutions vector
+    //add new odd elements to both paths
+    //pass new paths as the arguments to the next recursion    
+    bool solveRecursionOdd(DNAPath shorterPath, DNAPath longerPath, 
+        std::unordered_set<std::string> availableOddElements);
 
     //find and return all next possible vertices from last vertex 
     //from shorter path. Verify if vertices aren't already used
