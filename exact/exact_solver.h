@@ -67,7 +67,7 @@ private:
     //add new odd elements to both paths
     //pass new paths as the arguments to the next recursion    
     bool solveRecursionOdd(DNAPath shorterPath, DNAPath longerPath, 
-        std::vector <std::string> availableOddElements);
+        std::unordered_set<std::string> availableOddElements);
 
     //find and return all next possible vertices from last vertex 
     //from shorter path. Verify if vertices aren't already used

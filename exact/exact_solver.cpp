@@ -127,9 +127,7 @@ bool ExactSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath,
         //and shorterPath shorter
         if (longerPath.getLength() < shorterPath.getLength())
         {
-            DNAPath tmp = longerPath;
-            longerPath = shorterPath;
-            shorterPath = tmp;
+            swap(longerPath, shorterPath);
         }
 
         std::string newSolution = longerPath.substr(0, longerPath.getLength());
@@ -154,10 +152,7 @@ bool ExactSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath,
             odd_spectrum_copy.erase(odd_oligo);
         }
 
-        std::vector <std::string> availableOddElements;
-        availableOddElements.insert(availableOddElements.end(), 
-                odd_spectrum_copy.begin(), odd_spectrum_copy.end());
-        solveRecursionOdd(shorterPath, longerPath, availableOddElements);
+        solveRecursionOdd(shorterPath, longerPath, odd_spectrum_copy);
 
         cout << newSolution << '\n';
         cout << newSolution.length() << '\n';
@@ -272,10 +267,10 @@ bool ExactSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath,
         }
     }
 
-    //if there are no candidates try to expand longer path
+    // If we are in the ending of sequence
     //do it only when longerPath is actually longer
     //it will prevent from the never ending recursion loop
-    if(candidates.size() == 0 &&
+    if (shorterPath.getLength() + evenLength - 1 > length &&
         shorterPath.getLength() < longerPath.getLength())
     {
         return solveRecursion(longerPath, shorterPath, verticesAvailability, errorsCount);
@@ -285,7 +280,7 @@ bool ExactSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath,
 }
 
 bool ExactSolver::solveRecursionOdd(DNAPath shorterPath, DNAPath longerPath, 
-        std::vector <std::string> availableOddElements)
+        unordered_set<string> availableOddElements)
 {
     //calculate alhorithm work duration
     auto duration = std::chrono::high_resolution_clock::now() - startTime;
@@ -323,26 +318,23 @@ bool ExactSolver::solveRecursionOdd(DNAPath shorterPath, DNAPath longerPath,
     }
 
     //for each oddElement in availableOddElements
-    for (std::string oddElement : availableOddElements)
+    for (const string &oddElement : availableOddElements)
     {
         //create new paths
         DNAPath newPath1 = shorterPath;
         DNAPath newPath2 = longerPath;
 
-        //create new available odd elements
-        std::vector <std::string> newElements = availableOddElements;
-
         //add oddElement to new shorter path
         //if adding oddElement was not possible
         //continue to try with next oddElement
-        if(!shorterPath.addOddElement(longerPath, oddElement))
+        if(!newPath1.addOddElement(longerPath, oddElement))
         {
             continue;
         }
 
         //delete oddElement from newElements
-        newElements.erase(std::remove(newElements.begin(), 
-                newElements.end(), oddElement), newElements.end());
+        auto newElements = availableOddElements;
+        newElements.erase(oddElement);
 
         //result of new recursion
         bool result;
