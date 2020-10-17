@@ -38,7 +38,7 @@ public:
     bool addOddElement(DNAPath longerPath, std::string newOddElement);
 
     //return dna path length
-    int getLength();
+    int getLength() const;
 
     //return the first expanding nucleotide 
     //created by adding newElement to the path 
@@ -46,6 +46,9 @@ public:
 
     //dna path substring
     std::string substr(int beginningPosition, int length);
+
+    // Returns string that is a sequence created from both paths
+    std::string merge(const DNAPath &other) const;
 };
 
 #endif

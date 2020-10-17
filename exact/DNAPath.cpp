@@ -68,9 +68,6 @@ bool DNAPath::addOddElement(DNAPath longerPath, std::string newOddElement)
     std::string prefix = longerPath.substr(prefixEnd + 1 - newOddElement.length(), 
             newOddElement.length() - 1);
 
-    std::cout << path << std::endl << longerPath.path << std::endl 
-            << prefix << std::endl << newOddElement << std::endl << std::endl;
-    
     //if prefix required to extend path and 
     //newOddElement prefix are the same
     if(newOddElement.substr(0, newOddElement.length() - 1) == prefix)
@@ -84,8 +81,6 @@ bool DNAPath::addOddElement(DNAPath longerPath, std::string newOddElement)
         //the odd spectrum
         lastElementID = -1;
 
-        std::cout << "udalo sie" << std::endl << std::endl;
-
         return true;
     }
     else
@@ -94,7 +89,7 @@ bool DNAPath::addOddElement(DNAPath longerPath, std::string newOddElement)
     }
 }
 
-int DNAPath::getLength() 
+int DNAPath::getLength() const
 {
     return path.size();
 }
@@ -111,4 +106,17 @@ char DNAPath::findExpandingNucleotide(std::string newElement)
 std::string DNAPath::substr(int beginningPosition, int length)
 {
     return path.substr(beginningPosition, length);
+}
+
+std::string DNAPath::merge(const DNAPath &other) const {
+    const DNAPath &longer = this->getLength() >= other.getLength() ? *this : other;
+    const DNAPath &shorter = this->getLength() < other.getLength() ? *this : other;
+
+    std::string sequence = longer.path;
+    for (int i = 0; i < shorter.getLength(); ++i)  {
+        if (shorter.path[i] != 'X') {
+            sequence[i] = shorter.path[i];
+        }
+    }
+    return sequence;
 }

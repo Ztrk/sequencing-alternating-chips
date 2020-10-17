@@ -21,7 +21,6 @@ public:
 private:
     const int timeLimit = 4000000;
     const int solutionsLimit = 1;
-    const int iterationsLimit = 100000;
 
     std::vector<std::string> even_spectrum;
     std::unordered_set<std::string> odd_spectrum;
@@ -52,9 +51,6 @@ private:
     //found solutions
     std::vector <std::string> solutions;
 
-    //how many iterations have been rejected
-    int rejectedItereationsCount;
-
     // go through all possible combinations (break if stop condition detected)
     // push all found solutions to solutions vector
     // add new elements to evenPath and oddPath
@@ -82,11 +78,11 @@ private:
     bool verifyElementWithOddSpectrum(DNAPath* shorterPath, DNAPath* longerPath, 
         int elementID);
 
-    // Counts odd spectrum errors that were added by extending with oligo
-    // Removes used odd oligos from the set
-    // Previous oligo is the one before last
+    // Counts odd spectrum elements that are not in the set (errors)
+    // Starts with start and removes used odd oligos from the set
+    // Start is the last index of the first processed oligo
     int count_errors_odd_spectrum(DNAPath &extended_path, DNAPath &second_path, 
-        int prevsious_oligo, std::unordered_set<std::string> &odd_oligos);
+        int start, std::unordered_set<std::string> &odd_oligos);
 
     void add_oligos(std::vector<std::string> &even_spectrum, 
         const std::vector<std::string> &odd_spectrum);

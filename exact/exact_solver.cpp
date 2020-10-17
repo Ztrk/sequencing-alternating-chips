@@ -62,9 +62,6 @@ ExactSolver::ExactSolver(const std::vector<std::string> &even_spectrum_input,
 
     //save start time
     startTime = std::chrono::high_resolution_clock::now();
-
-    //how many iterations have been rejected
-    rejectedItereationsCount = 0;
 }
 
 void ExactSolver::add_oligos(std::vector<std::string> &even_spectrum, const std::vector<std::string> &odd_spectrum) {
@@ -98,7 +95,10 @@ std::string ExactSolver::solve()
     verticesAvailability[0] = NOTAVAILABLE;
     verticesAvailability[1] = NOTAVAILABLE;
 
-    solveRecursion(oddPath, evenPath, verticesAvailability, {0, 0}, odd_spectrum);
+    auto odd_oligos = odd_spectrum;
+    int odd_errors = count_errors_odd_spectrum(evenPath, oddPath, oddLength - 1, odd_oligos);
+
+    solveRecursion(oddPath, evenPath, verticesAvailability, {0, odd_errors}, odd_oligos);
 
     return solutions.size() > 0 ? solutions[0] : "NOT FOUND";
 }
@@ -125,69 +125,11 @@ bool ExactSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath,
         //if we were expending longer path swap paths
         //to make longerPath variable actually longer
         //and shorterPath shorter
-        if (longerPath.getLength() < shorterPath.getLength())
-        {
+        if (longerPath.getLength() < shorterPath.getLength()) {
             swap(longerPath, shorterPath);
         }
 
-        std::string newSolution = longerPath.substr(0, longerPath.getLength());
-        for (int i = 0; i < shorterPath.getLength(); ++i) {
-            if (newSolution[i] == 'X') {
-                newSolution[i] = shorterPath.substr(i, 1)[0];
-            }
-        }
-
-        // Test if every oligo from second set exists in solution
-        unordered_set <std::string> odd_spectrum_copy(odd_spectrum);
-        for (int i = 0; i <= shorterPath.getLength() - oddLength + 1; ++i) {
-            string odd_oligo;
-            if (shorterPath.substr(i, 1) != "X") {
-                odd_oligo = shorterPath.substr(i, oddLength - 1);
-                odd_oligo += longerPath.substr(i + oddLength - 1, 1);
-            }
-            else {
-                odd_oligo = longerPath.substr(i, oddLength - 1);
-                odd_oligo += shorterPath.substr(i + oddLength - 1, 1);
-            }
-            odd_spectrum_copy.erase(odd_oligo);
-        }
-
-        solveRecursionOdd(shorterPath, longerPath, odd_spectrum_copy);
-
-        cout << newSolution << '\n';
-        cout << newSolution.length() << '\n';
-        cout << odd_spectrum_copy.size() << '\n';
-        for (const string &oligo : odd_spectrum_copy) {
-            cout << oligo << '\n';
-        }
-        cout << endl;
-
-        bool isCorrect = odd_spectrum_copy.size() == 0;
-        
-        if (isCorrect)
-        {
-            //add solution to solutions vector
-            solutions.push_back(newSolution);
-
-            //if found solutions count is equal to solutions limit stop algorithm
-            if (static_cast<int>(solutions.size()) >= solutionsLimit)
-            {
-                return STOP;
-            }
-        }
-        else if (!isCorrect)
-        {
-            //increment rejected iterations count
-            rejectedItereationsCount++;
-
-            //if rejected iterations count exceeded the limit stop algorithm
-            if (iterationsLimit < rejectedItereationsCount)
-            {
-                return STOP;
-            }
-        }
-
-        return KEEPGOING;
+        return solveRecursionOdd(shorterPath, longerPath, odd_oligos);
     }
 
     //find all next possible vertices
@@ -215,7 +157,7 @@ bool ExactSolver::solveRecursion(DNAPath shorterPath, DNAPath longerPath,
             continue;
         }
 
-        int odd_errors = count_errors_odd_spectrum(newPath1, newPath2, shorterPath.getLastElementID(), odd_oligos_copy);
+        int odd_errors = count_errors_odd_spectrum(newPath1, newPath2, shorterPath.getLength() + 1, odd_oligos_copy);
         errorsCount[ODD] += odd_errors;
 
         // Take new oligo if too many errors in odd spectrum
@@ -285,12 +227,7 @@ bool ExactSolver::solveRecursionOdd(DNAPath shorterPath, DNAPath longerPath,
     //if all odd elements are used
     else if (availableOddElements.size() == 0)
     {
-        std::string newSolution = longerPath.substr(0, longerPath.getLength());
-        for (int i = 0; i < shorterPath.getLength(); ++i) {
-            if (newSolution[i] == 'X') {
-                newSolution[i] = shorterPath.substr(i, 1)[0];
-            }
-        }
+        std::string newSolution = shorterPath.merge(longerPath);
         
         //add solution to solutions vector
         solutions.push_back(newSolution);
@@ -321,7 +258,7 @@ bool ExactSolver::solveRecursionOdd(DNAPath shorterPath, DNAPath longerPath,
 
         //delete oddElement from newElements
         auto newElements = availableOddElements;
-        newElements.erase(oddElement);
+        count_errors_odd_spectrum(newPath1, newPath2, shorterPath.getLength() + 1, newElements);
 
         //result of new recursion
         bool result;
@@ -439,12 +376,9 @@ bool ExactSolver::verifyElementWithOddSpectrum(DNAPath* shorterPath, DNAPath* lo
 }
 
 int ExactSolver::count_errors_odd_spectrum(DNAPath &extended_path, DNAPath &second_path, 
-    int previous_oligo, unordered_set<string> &odd_oligos)
+    int start, unordered_set<string> &odd_oligos)
 {
     int errors = 0;
-    int last_oligo = extended_path.getLastElementID();
-    int overlap = overlapGraph->get_overlap(previous_oligo, last_oligo);
-    int start = extended_path.getLength() - even_spectrum[last_oligo].length() + overlap + 1;
     int end = min(second_path.getLength(), extended_path.getLength());
 
     // Iterate over every ending of odd oligo
