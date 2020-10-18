@@ -1,14 +1,6 @@
 import random
 import xml.etree.cElementTree as ET
-
-def add_x(oligo):
-    # Replaces nucleotides on odd positions with X
-    oligo = list(oligo)
-    for i in range(1, len(oligo) - 1, 2):
-        oligo[i] = 'X'
-    if len(oligo) % 2 == 1:
-        oligo[-2] = 'X'
-    return ''.join(oligo)
+from instance import add_x
 
 def generate_sequence(length):
     seq = random.choices(["A", "C", "G", "T"], k=length)
@@ -73,9 +65,9 @@ def generate(n, k, error_rate, seed=None):
 
 if __name__ == "__main__":
     n = 50
-    k = 6
+    k = 4
     error_rate = 0.2
-    seed = 245385500
+    seed = 21609254
     xml = generate(n, k, error_rate, seed)
 
     folder = 'pygen_instances/'

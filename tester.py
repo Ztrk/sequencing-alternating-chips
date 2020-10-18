@@ -1,44 +1,20 @@
 from os import listdir
-import xml.sax
 import sys
 import subprocess
-from generator import add_x, generate, get_seed
+from generator import generate, get_seed
+from instance import add_x, read_instance_from_xml, levenshtein_distance
 
 instances_dir = 'instances-small/'
 exact = 'release/exact/exact'
 heuristic = 'release/heuristic/heuristic'
-solution_command = heuristic
-
-class InstanceHandler(xml.sax.ContentHandler):
-    def __init__(self):
-        self.length = 0
-        self.start = ''
-        self.even_spectrum = set()
-        self.odd_spectrum = set()
-        self.current_spectrum = self.even_spectrum
-        self.in_cell = False
-        self.solution = None
-
-    def startElement(self, name, attrs):
-        if name == 'dna':
-            self.length = attrs.getValue('length')
-            self.start = attrs.getValue('start')
-            if 'solution' in attrs.getNames():
-                self.solution = attrs.getValue('solution')
-        elif name == 'cell':
-            self.in_cell = True
-
-    def endElement(self, name):
-        if name == 'probe':
-            self.current_spectrum = self.odd_spectrum
-        elif name == 'cell':
-            self.in_cell = False
-    
-    def characters(self, content):
-        if self.in_cell:
-            self.current_spectrum.add(content)
+solution_command = exact
 
 def check(instance, sequence):
+    '''
+        Checks the solution and prints some stats about it
+        Instance - input instance
+        Sequence - sequence to check
+    '''
     even_oligos_num = len(instance.even_spectrum)
     odd_oligos_num = len(instance.odd_spectrum)
     even_oligos = 0
@@ -61,7 +37,6 @@ def check(instance, sequence):
 
     if sequence[0:len(instance.start)] != instance.start:
         print('START WRONG')
-
 
     print('Length: {}/{}'.format(len(sequence), instance.length))
     print_fraction('Even:', even_oligos, even_oligos_num)
@@ -90,39 +65,33 @@ def file_key(file):
         keys[i] = int(keys[i])
     return keys
 
-def process_instance(instance, header):
-    handler = InstanceHandler()
-    xml.sax.parseString(instance, handler)
+def process_instance(instance_xml, header):
+    '''
+        Runs program being tested using solution_command
+        and then checks the result
+        instance_xml - input to the program (string)
+        header - first line to print
+    '''
+    instance = read_instance_from_xml(instance_xml)
+    print(header)
 
-    process = subprocess.run([solution_command], input=instance, text=True,
+    process = subprocess.run([solution_command], input=instance_xml, text=True,
         capture_output=True, check=True)
 
-    print(header)
     if solution_command == heuristic:
         # Iterations
         print(process.stdout.split('\n')[-4])
     # Elapsed time
     print(process.stdout.split('\n')[-3])
 
-    result = check(handler, process.stdout.split('\n')[-2])
+    result = check(instance, process.stdout.split('\n')[-2])
     print('')
     return result
-
-def levenshtein_distance(seq1, seq2):
-    lev = [[i + j for j in range(len(seq2) + 1)] for i in range(len(seq1) + 1)]
-    for i in range(1, len(seq1) + 1):
-        for j in range(1, len(seq2) + 1):
-            lev[i][j] = min(
-                lev[i - 1][j] + 1, 
-                lev[i][j - 1] + 1, 
-                lev[i - 1][j - 1] + (seq1[i - 1] != seq2[j - 1])
-            )
-    return lev[len(seq1)][len(seq2)]
 
 if __name__ == '__main__':
     if len(sys.argv) >= 2 and sys.argv[1] == '--generate':
         n = 50
-        k = 6
+        k = 4
         error_rate = 20
         seed = get_seed()
 
@@ -135,7 +104,6 @@ if __name__ == '__main__':
         files = [file for file in files_all if file[0:3] == 'alt' and file[-3:] == 'xml']
         files.sort(key=file_key)
 
-        xml_reader = xml.sax.make_parser()
         cumulative = [0, 0]
         for i, file_path in enumerate(files):
             with open(instances_dir + file_path) as file:
