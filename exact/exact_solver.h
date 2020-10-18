@@ -39,7 +39,7 @@ private:
     int oddNegativeErrorsExpectedCount;
 
     //overlap between elements graph
-    OverlapGraph* overlapGraph;
+    OverlapGraph *overlapGraph;
 
     //even and odd path starting elements
     std::string evenStart;
@@ -55,9 +55,9 @@ private:
     // push all found solutions to solutions vector
     // add new elements to evenPath and oddPath
     // pass new paths as the arguments to the next recursion
-    bool solveRecursion(DNAPath shorterPath, DNAPath longerPath, 
-        std::vector <bool> verticesAvailability, std::vector <int> errorsCount, 
-        std::unordered_set<std::string> odd_oligos);
+    bool solveRecursion(DNAPath &shorterPath, DNAPath &longerPath, 
+        std::vector<bool> &verticesAvailability, const std::vector <int> &errorsCount, 
+        std::unordered_set<std::string> &odd_oligos);
         
     //go through all possible combinations (break if stop condition detected)
     //push all found solutions to solutions vector
@@ -69,19 +69,20 @@ private:
     //find and return all next possible vertices from last vertex 
     //from shorter path. Verify if vertices aren't already used
     //and separate them between verified and unverified
-    std::vector <int> findAllPossibleVertices(DNAPath* shorterPath, DNAPath* longerPath, 
-        std::vector <bool> verticesAvailability);
+    std::vector <int> findAllPossibleVertices(const DNAPath &shorterPath, const DNAPath &longerPath, 
+        const std::vector <bool> &verticesAvailability);
 
     //create element to look for in odd spectrum
     //if odd spectrum contains this element return true
     //else return false
-    bool verifyElementWithOddSpectrum(DNAPath* shorterPath, DNAPath* longerPath, 
+    bool verifyElementWithOddSpectrum(const DNAPath &shorterPath, const DNAPath &longerPath, 
         int elementID);
 
     // Counts odd spectrum elements that are not in the set (errors)
     // Starts with start and removes used odd oligos from the set
     // Start is the last index of the first processed oligo
-    int count_errors_odd_spectrum(DNAPath &extended_path, DNAPath &second_path, 
+    // Returns count of errors and removed elements
+    std::pair<int, std::vector<std::string>> count_errors_odd_spectrum(const DNAPath &extended_path, const DNAPath &second_path, 
         int start, std::unordered_set<std::string> &odd_oligos);
 
     void add_oligos(std::vector<std::string> &even_spectrum, 

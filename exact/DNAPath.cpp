@@ -1,10 +1,11 @@
 #include <iostream>
 #include "DNAPath.h"
+#include "overlapGraph.h"
 
-DNAPath::DNAPath(std::string startingElement, int startingElementID)
+DNAPath::DNAPath(const std::string &startingElement, int startingElementID, 
+    const OverlapGraph *overlapGraph)
+:   overlapGraph(overlapGraph), lastElementID(startingElementID)
 {
-    lastElementID = startingElementID;
-
     //if starting element id is equal to 1
     //this means that we are creating odd path
     //and the starting element is 2 nucleotids shorter
@@ -19,46 +20,27 @@ DNAPath::DNAPath(std::string startingElement, int startingElementID)
     }
 }
 
-int DNAPath::get_overlap(const std::string &a, const std::string &b) {
-    for (size_t overlap = b.size() - 1; overlap > 0; --overlap) {
-        bool equal = true;
-        for (size_t i = a.size() - overlap, j = 0; j < overlap; ++i, ++j) {
-            if (a[i] != b[j]) {
-                equal = false;
-                break;
-            }
-        }
-        if (equal) {
-            return overlap;
-        }
-    }
-    return 0;
-}
-
-void DNAPath::print()
+void DNAPath::print() const
 {
     std::cout << path << std::endl;
 }
 
-int DNAPath::addElement(std::string newElement, int newElementID) 
+int DNAPath::addElement(const std::string &newElement, int newElementID) 
 {
+
+    // Find the overlap and expansion lengths
+    int overlap = overlapGraph->get_overlap(lastElementID, newElementID);
+    int expansion = newElement.length() - overlap;
+
+    path.append(newElement, overlap);
     //change last element id
     lastElementID = newElementID;
 
-    //find the overlap
-    int overlap = get_overlap(path, newElement);
-
-    //find a string to add to the path
-    std::string expandingString = newElement.substr(overlap, newElement.size() - overlap);
-
-    //add to the path
-    path += expandingString;
-
     //return how many negative errors has been assumed
-    return (expandingString.length() / 2) - 1;
+    return (expansion / 2) - 1;
 }
 
-bool DNAPath::addOddElement(DNAPath longerPath, std::string newOddElement) 
+bool DNAPath::addOddElement(const DNAPath &longerPath, const std::string &newOddElement) 
 {
     //index to the nucleotide where 
     //the odd extending element prefix ends
@@ -89,23 +71,13 @@ bool DNAPath::addOddElement(DNAPath longerPath, std::string newOddElement)
     }
 }
 
-int DNAPath::getLength() const
-{
-    return path.size();
-}
-
-char DNAPath::findExpandingNucleotide(std::string newElement)
+char DNAPath::findExpandingNucleotide(const std::string &newElement, int newElementID) const
 {
     //calculate a new element with the path overlap
-    int overlap = get_overlap(path, newElement);
+    int overlap = overlapGraph->get_overlap(lastElementID, newElementID);
 
     //return expanding nucleotide
     return newElement[overlap + 1];
-}
-
-std::string DNAPath::substr(int beginningPosition, int length)
-{
-    return path.substr(beginningPosition, length);
 }
 
 std::string DNAPath::merge(const DNAPath &other) const {

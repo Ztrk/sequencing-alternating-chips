@@ -3,49 +3,54 @@
 
 #include <string>
 #include <vector>
+#include "overlapGraph.h"
 
 class DNAPath {
 public:
     //constructor
-    DNAPath(std::string startingElement, int startingElementID);
+    DNAPath(const std::string &startingElement, int startingElementID, const OverlapGraph *OverlapGraph);
 
 private:
     //string holding the path of nucleotides
     std::string path;
-
-    //return overlap between two given elements
-    int get_overlap(const std::string &a, const std::string &b);
+    const OverlapGraph *overlapGraph;
     
 public:
     //id of the last element from the path
     int lastElementID;
 
     //print dna path
-    void print();
+    void print() const;
 
     //add newElement to the dna path
     //return how many negative errors has been assumed
-    int addElement(std::string newElement, int newElementID);
+    int addElement(const std::string &newElement, int newElementID);
 
     //return the last element from the path
-    std::string getLastElement();
-    inline int getLastElementID() {
+    std::string getLastElement() const;
+    inline int getLastElementID() const {
         return lastElementID;
     }
 
     //try to add newOddElement to the dna path
     //return true/false if succeded/can't add
-    bool addOddElement(DNAPath longerPath, std::string newOddElement);
+    bool addOddElement(const DNAPath &longerPath, const std::string &newOddElement);
 
     //return dna path length
-    int getLength() const;
+    inline int getLength() const
+    {
+        return path.size();
+    }
 
     //return the first expanding nucleotide 
     //created by adding newElement to the path 
-    char findExpandingNucleotide(std::string newElement);
+    char findExpandingNucleotide(const std::string &newElement, int newElementID) const;
 
     //dna path substring
-    std::string substr(int beginningPosition, int length);
+    inline std::string substr(int beginningPosition, int length) const
+    {
+        return path.substr(beginningPosition, length);
+    }
 
     // Returns string that is a sequence created from both paths
     std::string merge(const DNAPath &other) const;

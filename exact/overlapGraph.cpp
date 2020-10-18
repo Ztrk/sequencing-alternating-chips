@@ -51,9 +51,11 @@ OverlapGraph::OverlapGraph(std::vector <std::string> evenSpectrum)
             graph[prefixVertexID][postfixVertexID] = cost;
         }
     }
+
+    computeOutgoingVertices();
 }
 
-int OverlapGraph::get_overlap(const std::string &a, const std::string &b) {
+int OverlapGraph::get_overlap(const std::string &a, const std::string &b) const {
     for (size_t overlap = b.size() - 1; overlap > 0; --overlap) {
         bool equal = true;
         for (size_t i = a.size() - overlap, j = 0; j < overlap; ++i, ++j) {
@@ -69,7 +71,7 @@ int OverlapGraph::get_overlap(const std::string &a, const std::string &b) {
     return 0;
 }
 
-void OverlapGraph::print()
+void OverlapGraph::print() const
 {
     for (std::vector <int> row : graph)
     {
@@ -81,25 +83,22 @@ void OverlapGraph::print()
     }
 }
 
-std::vector <int> OverlapGraph::getOutgoingVertices(unsigned beginningVertexID)
+void OverlapGraph::computeOutgoingVertices()
 {
-    //vector with the answer
-    std::vector <int> outgoingVertices = {};
-
-    //for each vertex
-    for (size_t vertexID = 0; vertexID < graph.size(); vertexID++)
+    outgoingVertices = std::vector<std::vector<int>>(graph.size(), std::vector<int>());
+    // For each vertex
+    for (size_t vertex1 = 0; vertex1 < graph.size(); ++vertex1)
     {
-        //continue if it's beginningVertex
-        if (vertexID == beginningVertexID)
+        for (size_t vertex2 = 0; vertex2 < graph.size(); ++vertex2)
         {
-            continue;
-        }
-        //if these vertices overlap add vertex to outgoingVertices
-        else if (graph[beginningVertexID][vertexID] != 0)
-        {
-            outgoingVertices.push_back(vertexID);   
+            if (vertex1 == vertex2)
+            {
+                continue;
+            }
+            if (graph[vertex1][vertex2] != 0)
+            {
+                outgoingVertices[vertex1].push_back(vertex2);   
+            }
         }
     }
-
-    return outgoingVertices;
 }
